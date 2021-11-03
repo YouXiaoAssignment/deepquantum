@@ -5,7 +5,6 @@ import torch.nn.functional as F
 from deepquantum.gates import Circuit as cir
 
 # ===============================encoding layer=================================
-
 def PauliEncoding(N, input_lst, pauli='X'):
     if N < len(input_lst):
         raise ValueError("number of inputs must be less than number of qubits")
