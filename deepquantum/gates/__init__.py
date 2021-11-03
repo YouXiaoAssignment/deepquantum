@@ -1,2 +1,2 @@
 from .qgate import *
-from .math import *
+from .qmath import *
