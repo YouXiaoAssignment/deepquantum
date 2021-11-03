@@ -2,7 +2,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
-
+from deepquantum.gates import Circuit as cir
 
 # ===============================encoding layer=================================
 
@@ -11,11 +11,11 @@ def PauliEncoding(N, input_lst, pauli='X'):
         raise ValueError("number of inputs must be less than number of qubits")
     num = len(input_lst)
     if pauli == 'X':
-        E = multi_kron([rx(input_lst[i % num]) for i in range(N)])
+        E = cir.multi_kron([cir.rx(input_lst[i % num]) for i in range(N)])
     elif pauli == 'Y':
-        E = multi_kron([ry(input_lst[i % num]) for i in range(N)])
+        E = cir.multi_kron([cir.ry(input_lst[i % num]) for i in range(N)])
     elif pauli == 'Z':
-        E = multi_kron([rz(input_lst[i % num]) for i in range(N)])
+        E = cir.multi_kron([cir.rz(input_lst[i % num]) for i in range(N)])
     else:
         raise ValueError("pauli parameter must be one of X Y Z")
     return E

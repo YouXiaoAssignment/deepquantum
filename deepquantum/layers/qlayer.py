@@ -7,8 +7,8 @@ Created on Tue Oct 26 10:00:55 2021
 # import numpy as np
 import torch
 # import math
-from qutorch.qgate import rx, ry, rz, multi_kron, cnot, cz, IsUnitary, Hadamard, rxx, ryy, rzz
-
+# from qutorch.qgate import rx, ry, rz, multi_kron, cnot, cz, IsUnitary, Hadamard, rxx, ryy, rzz
+from deepquantum.gates import Circuit as cir
 
 def XYZLayer(N, parameter_lst):
     if N < 1:
@@ -21,10 +21,10 @@ def XYZLayer(N, parameter_lst):
         theta1 = parameter_lst[3 * i + 0]
         theta2 = parameter_lst[3 * i + 1]
         theta3 = parameter_lst[3 * i + 2]
-        single_gate = torch.matmul(rz(theta3), torch.matmul(ry(theta2), rx(theta1)))
+        single_gate = torch.matmul(cir.rz(theta3), torch.matmul(cir.ry(theta2), cir.rx(theta1)))
         single_gate_lst.append(single_gate)
 
-    return multi_kron(single_gate_lst)
+    return cir.multi_kron(single_gate_lst)
 
 
 def YZYLayer(N, parameter_lst):
@@ -38,10 +38,10 @@ def YZYLayer(N, parameter_lst):
         theta1 = parameter_lst[3 * i + 0]
         theta2 = parameter_lst[3 * i + 1]
         theta3 = parameter_lst[3 * i + 2]
-        single_gate = torch.matmul(ry(theta3), torch.matmul(rz(theta2), ry(theta1)))
+        single_gate = torch.matmul(cir.ry(theta3), torch.matmul(cir.rz(theta2), cir.ry(theta1)))
         single_gate_lst.append(single_gate)
 
-    return multi_kron(single_gate_lst)
+    return cir.multi_kron(single_gate_lst)
 
 
 def XZXLayer(N, parameter_lst):
@@ -55,10 +55,10 @@ def XZXLayer(N, parameter_lst):
         theta1 = parameter_lst[3 * i + 0]
         theta2 = parameter_lst[3 * i + 1]
         theta3 = parameter_lst[3 * i + 2]
-        single_gate = torch.matmul(rx(theta3), torch.matmul(rz(theta2), rx(theta1)))
+        single_gate = torch.matmul(cir.rx(theta3), torch.matmul(cir.rz(theta2), cir.rx(theta1)))
         single_gate_lst.append(single_gate)
 
-    return multi_kron(single_gate_lst)
+    return cir.multi_kron(single_gate_lst)
 
 
 def XZLayer(N, parameter_lst):
@@ -71,10 +71,10 @@ def XZLayer(N, parameter_lst):
     for i in range(N):
         theta1 = parameter_lst[2 * i + 0]
         theta2 = parameter_lst[2 * i + 1]
-        single_gate = torch.matmul(rz(theta2), rx(theta1))
+        single_gate = torch.matmul(cir.rz(theta2), cir.rx(theta1))
         single_gate_lst.append(single_gate)
 
-    return multi_kron(single_gate_lst)
+    return cir.multi_kron(single_gate_lst)
 
 
 def HLayer(N):
@@ -82,8 +82,8 @@ def HLayer(N):
         raise ValueError("number of qubits(N) must be >= 1")
     single_gate_lst = []
     for i in range(N):
-        single_gate_lst.append(Hadamard())
-    return multi_kron(single_gate_lst)
+        single_gate_lst.append(cir.Hadamard())
+    return cir.multi_kron(single_gate_lst)
 
 
 # ===============================================================================
@@ -96,19 +96,19 @@ def ring_of_cnot(N, up2down=True):
 
     if N == 2:  # 当只有两个qubit时，ring of cnot就是1个cnot
         if up2down:
-            return cnot(2, 0, 1)
+            return cir.cnot(2, 0, 1)
         else:
-            return cnot(2, 1, 0)
+            return cir.cnot(2, 1, 0)
 
     rst = torch.eye(2 ** N, 2 ** N) + 0j
     if up2down:
         for i in range(N):
-            rst = torch.matmul(cnot(N, i, (i + 1) % N), rst)
+            rst = torch.matmul(cir.cnot(N, i, (i + 1) % N), rst)
         return rst
 
     else:  # 当然，设置up2down为False就可优先以线路下方的qubit为控制比特
         for i in range(N - 1, -1, -1):
-            rst = torch.matmul(cnot(N, i, (i - 1) % N), rst)
+            rst = torch.matmul(cir.cnot(N, i, (i - 1) % N), rst)
         return rst
 
 
@@ -122,19 +122,19 @@ def ring_of_cnot2(N, up2down=True):
 
     if N == 2:  # 当只有两个qubit时，ring of cnot就是1个cnot
         if up2down:
-            return cnot(2, 0, 1)
+            return cir.cnot(2, 0, 1)
         else:
-            return cnot(2, 1, 0)
+            return cir.cnot(2, 1, 0)
 
     rst = torch.eye(2 ** N, 2 ** N) + 0j
     if up2down:
         for i in range(N):
-            rst = torch.matmul(cnot(N, i, (i + 2) % N), rst)
+            rst = torch.matmul(cir.cnot(N, i, (i + 2) % N), rst)
         return rst
 
     else:  # 当然，设置up2down为False就可优先以线路下方的qubit为控制比特
         for i in range(N - 1, -1, -1):
-            rst = torch.matmul(cnot(N, i, (i - 2) % N), rst)
+            rst = torch.matmul(cir.cnot(N, i, (i - 2) % N), rst)
         return rst
 
 
@@ -144,19 +144,19 @@ def ring_of_cz(N, up2down=True):
 
     if N == 2:  # 当只有两个qubit时，ring of cz就是1个cz
         if up2down:
-            return cz(2, 0, 1)
+            return cir.cz(2, 0, 1)
         else:
-            return cz(2, 1, 0)
+            return cir.cz(2, 1, 0)
 
     rst = torch.eye(2 ** N, 2 ** N) + 0j
     if up2down:
         for i in range(N):
-            rst = torch.matmul(cz(N, i, (i + 1) % N), rst)
+            rst = torch.matmul(cir.cz(N, i, (i + 1) % N), rst)
         return rst
 
     else:
         for i in range(N - 1, -1, -1):
-            rst = torch.matmul(cz(N, i, (i - 1) % N), rst)
+            rst = torch.matmul(cir.cz(N, i, (i - 1) % N), rst)
         return rst
 
 
@@ -169,23 +169,23 @@ def nearest_neighbor_cnot(N, up2down=True):
 
     if N == 2:  # 当只有两个qubit时，nearest_neighbor_cnot模块就是1个cnot
         if up2down:
-            return cnot(2, 0, 1)
+            return cir.cnot(2, 0, 1)
         else:
-            return cnot(2, 1, 0)
+            return cir.cnot(2, 1, 0)
 
     rst = torch.eye(2 ** N, 2 ** N) + 0j
     if up2down:
         for i in range(0, N - 1, 2):
-            rst = torch.matmul(cnot(N, i, i + 1), rst)
+            rst = torch.matmul(cir.cnot(N, i, i + 1), rst)
         for i in range(1, N - 1, 2):
-            rst = torch.matmul(cnot(N, i, i + 1), rst)
+            rst = torch.matmul(cir.cnot(N, i, i + 1), rst)
         return rst
 
     else:  # 当然，设置up2down为False就可优先以线路下方的qubit为控制比特
         for i in range(N - 1, 0, -2):
-            rst = torch.matmul(cnot(N, i, i - 1), rst)
+            rst = torch.matmul(cir.cnot(N, i, i - 1), rst)
         for i in range(N - 2, 0, -2):
-            rst = torch.matmul(cnot(N, i, i - 1), rst)
+            rst = torch.matmul(cir.cnot(N, i, i - 1), rst)
         return rst
 
 
@@ -198,23 +198,23 @@ def nearest_neighbor_cz(N, up2down=True):
 
     if N == 2:  # 当只有两个qubit时，nearest_neighbor_cz模块就是1个cz
         if up2down:
-            return cz(2, 0, 1)
+            return cir.cz(2, 0, 1)
         else:
-            return cz(2, 1, 0)
+            return cir.cz(2, 1, 0)
 
     rst = torch.eye(2 ** N, 2 ** N) + 0j
     if up2down:
         for i in range(0, N - 1, 2):
-            rst = torch.matmul(cz(N, i, i + 1), rst)
+            rst = torch.matmul(cir.cz(N, i, i + 1), rst)
         for i in range(1, N - 1, 2):
-            rst = torch.matmul(cz(N, i, i + 1), rst)
+            rst = torch.matmul(cir.cz(N, i, i + 1), rst)
         return rst
 
     else:  # 当然，设置up2down为False就可优先以线路下方的qubit为控制比特
         for i in range(N - 1, 0, -2):
-            rst = torch.matmul(cz(N, i, i - 1), rst)
+            rst = torch.matmul(cir.cz(N, i, i - 1), rst)
         for i in range(N - 2, 0, -2):
-            rst = torch.matmul(cz(N, i, i - 1), rst)
+            rst = torch.matmul(cir.cz(N, i, i - 1), rst)
         return rst
 
 
@@ -224,23 +224,23 @@ def all2all_cnot(N, up2down=True):
 
     if N == 2:  # 当只有两个qubit时，nearest_neighbor_cz模块就是1个cz
         if up2down:
-            return cnot(2, 0, 1)
+            return cir.cnot(2, 0, 1)
         else:
-            return cnot(2, 1, 0)
+            return cir.cnot(2, 1, 0)
 
     rst = torch.eye(2 ** N, 2 ** N) + 0j
     if up2down:
         for i in range(N):
             for j in range(N):
                 if j != i:
-                    rst = torch.matmul(cnot(N, i, j), rst)
+                    rst = torch.matmul(cir.cnot(N, i, j), rst)
         return rst
 
     else:  # 当然，设置up2down为False就可优先以线路下方的qubit为控制比特
         for i in range(N - 1, -1, -1):
             for j in range(N - 1, -1, -1):
                 if j != i:
-                    rst = torch.matmul(cnot(N, i, j), rst)
+                    rst = torch.matmul(cir.cnot(N, i, j), rst)
         return rst
 
 
@@ -315,16 +315,16 @@ def RxxLayer(N, param_lst):
     if N < 2:
         raise ValueError("number of qubits must >= 2")
     if N == 2:
-        return rxx(param_lst[0])
+        return cir.rxx(param_lst[0])
 
     if N % 2 == 0:  # 偶数个qubit
-        U1 = multi_kron([rxx(p) for p in param_lst[0:int(N / 2)]])
-        U2 = multi_kron([torch.eye(2, 2)] + [rxx(p) for p in param_lst[int(N / 2):N - 1]] + [torch.eye(2, 2)])
+        U1 = cir.multi_kron([cir.rxx(p) for p in param_lst[0:int(N / 2)]])
+        U2 = cir.multi_kron([torch.eye(2, 2)] + [cir.rxx(p) for p in param_lst[int(N / 2):N - 1]] + [torch.eye(2, 2)])
         rst = U2 @ U1
 
     elif N % 2 == 1:  # 奇数个qubit
-        U1 = multi_kron([rxx(p) for p in param_lst[0:int((N - 1) / 2)]] + [torch.eye(2, 2)])
-        U2 = multi_kron([torch.eye(2, 2)] + [rxx(p) for p in param_lst[int((N - 1) / 2):N - 1]])
+        U1 = cir.multi_kron([cir.rxx(p) for p in param_lst[0:int((N - 1) / 2)]] + [torch.eye(2, 2)])
+        U2 = cir.multi_kron([torch.eye(2, 2)] + [cir.rxx(p) for p in param_lst[int((N - 1) / 2):N - 1]])
         rst = U2 @ U1
     return rst
 
@@ -335,16 +335,16 @@ def RyyLayer(N, param_lst):
     if N < 2:
         raise ValueError("number of qubits must >= 2")
     if N == 2:
-        return ryy(param_lst[0])
+        return cir.ryy(param_lst[0])
 
     if N % 2 == 0:  # 偶数个qubit
-        U1 = multi_kron([ryy(p) for p in param_lst[0:int(N / 2)]])
-        U2 = multi_kron([torch.eye(2, 2)] + [ryy(p) for p in param_lst[int(N / 2):N - 1]] + [torch.eye(2, 2)])
+        U1 = cir.multi_kron([cir.ryy(p) for p in param_lst[0:int(N / 2)]])
+        U2 = cir.multi_kron([torch.eye(2, 2)] + [cir.ryy(p) for p in param_lst[int(N / 2):N - 1]] + [torch.eye(2, 2)])
         rst = U2 @ U1
 
     elif N % 2 == 1:  # 奇数个qubit
-        U1 = multi_kron([ryy(p) for p in param_lst[0:int((N - 1) / 2)]] + [torch.eye(2, 2)])
-        U2 = multi_kron([torch.eye(2, 2)] + [ryy(p) for p in param_lst[int((N - 1) / 2):N - 1]])
+        U1 = cir.multi_kron([cir.ryy(p) for p in param_lst[0:int((N - 1) / 2)]] + [torch.eye(2, 2)])
+        U2 = cir.multi_kron([torch.eye(2, 2)] + [cir.ryy(p) for p in param_lst[int((N - 1) / 2):N - 1]])
         rst = U2 @ U1
     return rst
 
@@ -355,16 +355,16 @@ def RzzLayer(N, param_lst):
     if N < 2:
         raise ValueError("number of qubits must >= 2")
     if N == 2:
-        return rzz(param_lst[0])
+        return cir.rzz(param_lst[0])
 
     if N % 2 == 0:  # 偶数个qubit
-        U1 = multi_kron([rzz(p) for p in param_lst[0:int(N / 2)]])
-        U2 = multi_kron([torch.eye(2, 2)] + [rzz(p) for p in param_lst[int(N / 2):N - 1]] + [torch.eye(2, 2)])
+        U1 = cir.multi_kron([cir.rzz(p) for p in param_lst[0:int(N / 2)]])
+        U2 = cir.multi_kron([torch.eye(2, 2)] + [cir.rzz(p) for p in param_lst[int(N / 2):N - 1]] + [torch.eye(2, 2)])
         rst = U2 @ U1
 
     elif N % 2 == 1:  # 奇数个qubit
-        U1 = multi_kron([rzz(p) for p in param_lst[0:int((N - 1) / 2)]] + [torch.eye(2, 2)])
-        U2 = multi_kron([torch.eye(2, 2)] + [rzz(p) for p in param_lst[int((N - 1) / 2):N - 1]])
+        U1 = cir.multi_kron([cir.rzz(p) for p in param_lst[0:int((N - 1) / 2)]] + [torch.eye(2, 2)])
+        U2 = cir.multi_kron([torch.eye(2, 2)] + [cir.rzz(p) for p in param_lst[int((N - 1) / 2):N - 1]])
         rst = U2 @ U1
     return rst
 
@@ -386,7 +386,7 @@ def RzzLayer(N, param_lst):
 if __name__ == "__main__":
     b = all2all_cnot(3)
     print(b)
-    print(IsUnitary(b))
+    print(cir.IsUnitary(b))
     a = XYZLayer(3, [1, 1, 1, 2, 2, 2, 3, 3, 3])
     print(a)
-    print(IsUnitary(a))
+    print(cir.IsUnitary(a))
