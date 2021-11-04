@@ -366,7 +366,7 @@ class Circuit(object):
         """
         Pauli x
         """
-        return torch.tensor([[0,-1j],[1j,0]]) + 0j
+        return torch.tensor([[0,-1j], [1j,0]]) + 0j
 
     def _Hadamard(self):
         H = torch.sqrt(torch.tensor(0.5)) * torch.tensor([[1, 1], [1, -1]]) + 0j
@@ -377,7 +377,7 @@ class Circuit(object):
         state为nqubit大小的密度矩阵，target为z门放置位置
 
         """
-        zgate = self.z_gate()
+        zgate = self._z_gate()
         H = self.gate_expand_1toN(zgate, nqubit, target)
         expecval = (state @ H).trace()  # [-1,1]
         expecval_real = (expecval.real + 1) / 2  # [0,1]
@@ -387,12 +387,10 @@ class Circuit(object):
     def measure(self, state, nqubit):
         """
             测量nqubit次期望
-
         """
         measure = torch.zeros(nqubit, 1)
         for i in range(nqubit):
             measure[i] = self.expecval_ZI(state, nqubit, list(range(nqubit))[i])
-
         return measure
 
 
