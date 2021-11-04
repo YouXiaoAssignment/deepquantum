@@ -7,7 +7,7 @@ requirements = [
 
 setup(
     name='deepquantum',
-    version='1.0',
+    version='1.2.3',
     packages=find_packages(where="."),
     url='',
     license='',

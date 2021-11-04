@@ -74,3 +74,5 @@ def ptrace(rhoAB, dimA, dimB):
         p = torch.kron(id1, id2[i]) @ rhoAB @ torch.kron(id1, id2[i].reshape(mat_dim_B, 1))
         pout += p
     return pout
+
+
