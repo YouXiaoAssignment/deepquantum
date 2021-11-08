@@ -4,6 +4,13 @@ import torch
 import torch.nn.functional as F
 
 
+def multi_kron(lst):
+    rst = lst[0]
+    for i in range( 1,len(lst) ):
+        rst = torch.kron(rst, lst[i])
+    return rst
+
+
 def dag(x):
     """
     compute conjugate transpose of input matrix
@@ -25,17 +32,10 @@ def IsUnitary(in_matrix):
     for i in range(n):  # 每行是否归一
         summ = 0.0
         for j in range(n):
-            summ += (abs(in_matrix[i][j])) ** 2
-        if abs(summ - 1) > 1e-6:
-            print("not unitary")
-            return False
-
-    for j in range(n):  # 每列是否归一
-        summ = 0.0
-        for i in range(n):
-            summ += (abs(in_matrix[i][j])) ** 2
-        if abs(summ - 1) > 1e-6:
-            print("not unitary")
+            summ += (torch.abs(in_matrix[i][j])) ** 2
+        if torch.abs(summ - 1) > 1e-6:
+            print("not unitary! not normalized")
+            raise ValueError("not unitary matrix! not normalized")
             return False
 
     for i in range(n - 1):  # 行之间是否正交
@@ -43,18 +43,11 @@ def IsUnitary(in_matrix):
             summ = 0.0 + 0.0 * 1j
             for j in range(n):
                 summ += in_matrix[i][j] * (in_matrix[k][j]).conj()
-            if abs(abs(summ) - 0) > 1e-6:
-                print("not orthogonal")
+            if torch.abs(summ) > 1e-6:
+                print("not unitary! not orthogonal")
+                raise ValueError("not unitary matrix! not orthogonal")
                 return False
 
-    for j in range(n - 1):  # 列之间是否正交
-        for k in range(j + 1, n):
-            summ = 0.0 + 0.0 * 1j
-            for i in range(n):
-                summ += in_matrix[i][j] * (in_matrix[i][k]).conj()
-            if abs(abs(summ) - 0) > 1e-6:
-                print("not orthogonal")
-                return False
     return True
 
 def ptrace(rhoAB, dimA, dimB):

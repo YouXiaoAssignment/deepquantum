@@ -5,6 +5,11 @@ import torch.nn.functional as F
 
 class Circuit(object):
     def __init__(self, N):
+        
+        self.paulix = torch.tensor([[0, 1.0], [1, 0]]) + 0j
+        self.pauliy = torch.tensor([[0, -1j], [1j, 0.0]]) + 0j
+        self.pauliz = torch.tensor([[1, 0], [0, -1.0]]) + 0j
+        
         self._U = None
         self.n_qubits = N  # 总QuBit的个数
         self.gate_list = []  # 顺序保存门结构
@@ -30,6 +35,8 @@ class Circuit(object):
         """
         kron the data in the list in order
         """
+        if len(x_list) == 0:
+            raise ValueError("input x_list can not be empty")
         x_k = torch.ones(1)
         for x in x_list:
             x_k = torch.kron(x_k, x)
@@ -46,22 +53,24 @@ class Circuit(object):
 
         if target >= N:
             raise ValueError("target must be integer < integer N")
+        lst1 = [torch.eye(2,2)]*N
+        lst1[target] = U
+        return self.multi_kron(lst1)
+        #return self.multi_kron([torch.eye(2)] * target + [U] + [torch.eye(2)] * (N - target - 1))
 
-        return self.multi_kron([torch.eye(2)] * target + [U] + [torch.eye(2)] * (N - target - 1))
+    # def gate_expand_2toN(self, U, N, targets):
+    #     """
+    #     representing a two-qubit gate that act on a system with N qubits.
 
-    def gate_expand_2toN(self, U, N, targets):
-        """
-        representing a two-qubit gate that act on a system with N qubits.
+    #     """
 
-        """
+    #     if N < 2:
+    #         raise ValueError("integer N must be larger or equal to 2")
 
-        if N < 2:
-            raise ValueError("integer N must be larger or equal to 2")
+    #     if targets[1] >= N:
+    #         raise ValueError("target must be integer < integer N")
 
-        if targets[1] >= N:
-            raise ValueError("target must be integer < integer N")
-
-        return self.multi_kron([torch.eye(2)] * targets[0] + [U] + [torch.eye(2)] * (N - targets[1] - 1))
+    #     return self.multi_kron([torch.eye(2)] * targets[0] + [U] + [torch.eye(2)] * (N - targets[1] - 1))
 
     def gate_sequence_product(self, left_to_right=True):
         """
