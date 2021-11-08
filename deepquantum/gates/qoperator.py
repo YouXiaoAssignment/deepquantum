@@ -145,6 +145,10 @@ class Hadamard(Observable, Operation):
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
         return info
     
+    def params_update(self,params_lst):
+        pass
+        
+    
 
 class PauliX(Observable, Operation):
     label = "PauliX"
@@ -169,6 +173,9 @@ class PauliX(Observable, Operation):
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
         return info
     
+    def params_update(self,params_lst):
+        pass
+    
 
 class PauliY(Observable, Operation):
     label = "PauliY"
@@ -192,6 +199,10 @@ class PauliY(Observable, Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
         return info
+    
+    def params_update(self,params_lst):
+        pass
+
 
 class PauliZ(Observable, DiagonalOperation):
     label = "PauliZ"
@@ -215,6 +226,9 @@ class PauliZ(Observable, DiagonalOperation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
         return info
+    
+    def params_update(self,params_lst):
+        pass
 
 #==============================带参数单比特门==================================
 
@@ -243,6 +257,11 @@ class rx(Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
         return info
+    
+    def params_update(self,params):
+        self.params = params
+        self.matrix = torch.cos(self.params/2.0)*torch.eye(2,2) \
+            - 1j*torch.sin(self.params/2.0)*PauliX.matrix + 0j
 
 
 
@@ -275,6 +294,11 @@ class ry(Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
         return info
+    
+    def params_update(self,params):
+        self.params = params
+        self.matrix = torch.cos(self.params/2.0)*torch.eye(2,2) \
+            - 1j*torch.sin(self.params/2.0)*PauliY.matrix + 0j
 
 
 
@@ -285,7 +309,7 @@ class ry(Operation):
 class rz(Operation):
     label = "Rz"
     num_params = 1
-    num_wires = 1            
+    num_wires = 1
     self_inverse = False
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
@@ -307,6 +331,11 @@ class rz(Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
         return info
+    
+    def params_update(self,params):
+        self.params = params
+        self.matrix = torch.cos(self.params/2.0)*torch.eye(2,2) \
+            - 1j*torch.sin(self.params/2.0)*PauliZ.matrix + 0j
 
 
 #==============================带参数两比特门==================================
@@ -350,6 +379,11 @@ class rxx(Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':self.params}
         return info
+    
+    def params_update(self,params):
+        self.params = params
+        self.matrix = torch.cos(self.params/2.0)*torch.eye(4,4) \
+            - 1j*torch.sin(self.params/2.0)*torch.kron(PauliX.matrix,PauliX.matrix) + 0j
 
 
 
@@ -396,6 +430,11 @@ class ryy(Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':self.params}
         return info
+    
+    def params_update(self,params):
+        self.params = params
+        self.matrix = torch.cos(self.params/2.0)*torch.eye(4,4) \
+            - 1j*torch.sin(self.params/2.0)*torch.kron(PauliY.matrix,PauliY.matrix) + 0j
 
 
 
@@ -442,6 +481,11 @@ class rzz(Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':self.params}
         return info
+    
+    def params_update(self,params):
+        self.params = params
+        self.matrix = torch.cos(self.params/2.0)*torch.eye(4,4) \
+            - 1j*torch.sin(self.params/2.0)*torch.kron(PauliZ.matrix,PauliZ.matrix) + 0j
 
 
 
@@ -478,6 +522,9 @@ class cnot(Operation):
         info = {'gate':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':None}
         return info
     
+    def params_update(self,params):
+        pass
+    
 
 
 
@@ -511,6 +558,9 @@ class cz(Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':None}
         return info
+    
+    def params_update(self,params):
+        pass
     
 
 
@@ -552,6 +602,9 @@ class toffoli(Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':self.control_lst, 'target_lst':self.target_lst,'params':None}
         return info
+    
+    def params_update(self,params):
+        pass
 
 
 
@@ -588,6 +641,9 @@ class multi_control_cnot(Operation):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'gate':self.label, 'contral_lst':self.control_lst, 'target_lst':self.target_lst,'params':None}
         return info
+    
+    def params_update(self,params):
+        pass
 
 
 

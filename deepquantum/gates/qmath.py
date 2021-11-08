@@ -69,3 +69,48 @@ def ptrace(rhoAB, dimA, dimB):
     return pout
 
 
+def partial_trace(rho,N,trace_lst):
+    '''
+    trace_lst里面是想trace掉的qubit的索引号，须从小到大排列
+    '''
+    #输入合法性检测
+    if abs(torch.trace(rho) - 1) > 1e-6:
+        raise ValueError("trace of density matrix must be 1")
+    if rho.shape[0] != 2**N:
+        raise ValueError('rho dim error')
+    
+    trace_lst.sort()#必须从小到大排列
+    rho = rho + 0j
+    if len(trace_lst) == 0:
+        return rho + 0j
+    
+    id1 = torch.eye(2**(trace_lst[0])) + 0j
+    id2 = torch.eye(2**(N-1-trace_lst[0])) + 0j
+    id3 = torch.eye(2) + 0j
+    rho_nxt = torch.tensor(0)
+    for i in range(2):
+        A = torch.kron( torch.kron(id1,id3[i]), id2 ) + 0j
+        rho_nxt = rho_nxt + A @ rho @ dag(A)
+    
+    new_lst = [ i-1 for i in trace_lst[1:] ] #trace掉一个qubit，他后面的qubit索引号要减1
+    
+    return ptrace(rho_nxt,N-1,new_lst) + 0j
+
+def measure(state,M,rho=False,physic=False):
+    if not rho: #输入态为态矢，而非密度矩阵
+        if len(state.shape) != 2: #state必须是二维张量，即便只有1个态矢也要view成(n,1)
+            raise ValueError("state必须是二维张量,即便batch只有1个态矢也要view成(n,1)")
+        else: #state为batch_size个态矢，即二维张量
+            
+            m1 = (dag(state) @ M @ state)
+            
+            rst = torch.diag(m1).view(-1,1) #取对角元变成1维张量，在被view成2维张量
+            rst = rst.real
+            return rst
+                  
+    else:#state是1个密度矩阵，此时不支持batch
+        if torch.abs(torch.trace(rho) - 1) > 1e-4:
+            raise ValueError("trace of density matrix must be 1")
+        return torch.trace(state @ M).real 
+
+

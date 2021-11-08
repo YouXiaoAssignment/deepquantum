@@ -19,6 +19,7 @@ class XYZLayer(Operation):
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
+        self.num_params = len(params_lst)
         
     def U_expand(self):
         lst1 = [torch.eye(2,2)]*self.nqubits
@@ -35,6 +36,9 @@ class XYZLayer(Operation):
     def info(self):
         info = {'label':self.label, 'contral_lst':[], 'target_lst':self.wires,'params':self.params}
         return info
+    
+    def params_update(self,params_lst):
+        pass
     
 
 
@@ -54,6 +58,7 @@ class YZYLayer(Operation):
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
+        self.num_params = len(params_lst)
         
     def U_expand(self):
         lst1 = [torch.eye(2,2)]*self.nqubits
@@ -70,6 +75,9 @@ class YZYLayer(Operation):
     def info(self):
         info = {'label':self.label, 'contral_lst':[], 'target_lst':self.wires,'params':self.params}
         return info
+    
+    def params_update(self,params_lst):
+        pass
 
 
 
@@ -91,6 +99,7 @@ class XZXLayer(Operation):
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
+        self.num_params = len(params_lst)
         
     def U_expand(self):
         lst1 = [torch.eye(2,2)]*self.nqubits
@@ -107,6 +116,9 @@ class XZXLayer(Operation):
     def info(self):
         info = {'label':self.label, 'contral_lst':[], 'target_lst':self.wires,'params':self.params}
         return info
+    
+    def params_update(self,params_lst):
+        pass
 
 
 
@@ -127,6 +139,7 @@ class XZLayer(Operation):
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
+        self.num_params = len(params_lst)
         
     def U_expand(self):
         lst1 = [torch.eye(2,2)]*self.nqubits
@@ -142,6 +155,9 @@ class XZLayer(Operation):
     def info(self):
         info = {'label':self.label, 'contral_lst':[], 'target_lst':self.wires,'params':self.params}
         return info
+    
+    def params_update(self,params_lst):
+        pass
 
 
 
@@ -165,6 +181,7 @@ class ZXLayer(Operation):
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
+        self.num_params = len(params_lst)
         
     def U_expand(self):
         lst1 = [torch.eye(2,2)]*self.nqubits
@@ -180,6 +197,9 @@ class ZXLayer(Operation):
     def info(self):
         info = {'label':self.label, 'contral_lst':[], 'target_lst':self.wires,'params':self.params}
         return info
+    
+    def params_update(self,params_lst):
+        pass
 
 
 
@@ -195,6 +215,7 @@ class HLayer(Operation):
         
         self.nqubits = N
         self.wires = wires
+        self.num_params = 0
         
         
     def U_expand(self):
@@ -208,6 +229,9 @@ class HLayer(Operation):
     def info(self):
         info = {'label':self.label, 'contral_lst':[], 'target_lst':self.wires,'params':None}
         return info
+    
+    def params_update(self,params_lst):
+        pass
 
 
 
@@ -229,6 +253,7 @@ class ring_of_cnot(Operation):
             raise ValueError("ring_of_cnotLayer: number of wires must >= 2")
         self.nqubits = N
         self.wires = wires
+        self.num_params = 0
         
         
     def U_expand(self):
@@ -251,6 +276,9 @@ class ring_of_cnot(Operation):
         else:
             info = {'label':self.label, 'contral_lst':self.wires, 'target_lst':target_lst,'params':None}
         return info
+    
+    def params_update(self,params_lst):
+        pass
 
 
 
@@ -265,11 +293,12 @@ class ring_of_cnot2(Operation):
     def __init__(self,N,wires):
         
         if len(wires) > N:
-            raise ValueError("ring_of_cnotLayer: number of wires must <= N")
+            raise ValueError("ring_of_cnot2Layer: number of wires must <= N")
         if len(wires) < 2:
-            raise ValueError("ring_of_cnotLayer: number of wires must >= 2")
+            raise ValueError("ring_of_cnot2Layer: number of wires must >= 2")
         self.nqubits = N
         self.wires = wires
+        self.num_params = 0
         
         
     def U_expand(self):
@@ -292,6 +321,9 @@ class ring_of_cnot2(Operation):
         else:
             info = {'label':self.label, 'contral_lst':self.wires, 'target_lst':target_lst,'params':None}
         return info
+    
+    def params_update(self,params_lst):
+        pass
 
 
 
