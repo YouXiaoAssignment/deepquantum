@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from deepquantum.gates import Circuit as cir
 from deepquantum.gates.qmath import multi_kron, dag
-from deepquantum.gates.qoperator import rx, ry, rz 
+from deepquantum.gates.qoperator import rx, ry, rz, Operation
 
 # ===============================encoding layer=================================
 
@@ -40,7 +40,7 @@ from deepquantum.gates.qoperator import rx, ry, rz
 #     return state
 
 
-class PauliEncoding(object):
+class PauliEncoding(Operation):
     def __init__(self, N, input_lst, wires, pauli='X'):
         
         if N < len(input_lst):

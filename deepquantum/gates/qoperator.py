@@ -5,7 +5,7 @@ Created on Fri Nov  5 14:43:13 2021
 @author: shish
 """
 import torch
-from deepquantum.gates import multi_kron
+from deepquantum.gates import multi_kron, IsUnitary, IsHermitian
 
 
 
@@ -94,13 +94,10 @@ class Operation(Operator):
         #multi_kron(lst2) - multi_kron(lst3)对应不做操作的哪些情况
         return multi_kron(lst2) - multi_kron(lst3) + multi_kron(lst1) + 0j
     
-    
-    
-    
+ 
     
     def IsUnitary(matrix):
-        #判断一个矩阵是否幺正
-        pass
+        return IsUnitary(matrix)
     
     pass
 
@@ -108,7 +105,7 @@ class Observable(Operator):
     
     def IsHermitian(matrix):
         #判断一个矩阵是否厄米
-        pass
+        return IsHermitian(matrix)
     
     pass
 

@@ -19,6 +19,7 @@ def dag(x):
     x_dag = x_conj.permute(1, 0)
     return x_dag
 
+
 def IsUnitary(in_matrix):
     '''
     判断一个矩阵是否是酉矩阵
@@ -50,6 +51,48 @@ def IsUnitary(in_matrix):
 
     return True
 
+
+
+def IsNormalized(vector):
+    '''
+    判断一个矢量是否归一
+    '''
+    if len(vector.shape) != 1:  # 验证是否为方阵
+        raise ValueError("not vector!")
+
+    n = vector.shape[0]  # 向量元素数
+
+    summ = 0.0
+    for i in range(n):
+        summ += (torch.abs(vector[i])) ** 2
+    if torch.abs(summ - 1) > 1e-6:
+        #print("vector is not normalized")
+        return False
+        #raise ValueError("vector is not normalized")
+        
+    return True
+
+
+
+def IsHermitian(matrix):
+    '''
+    判断一个矩阵是否是厄米矩阵
+    '''
+    if (matrix.shape)[0] != (matrix.shape)[1]:  # 验证是否为方阵
+        raise ValueError("not square matrix!")
+
+    n = matrix.shape[0] #行数
+    
+    for i in range(n):
+        for j in range(i,n,1):
+            if torch.abs(matrix[i][j] - matrix[j][i].conj()) > 1e-6:
+                return False
+    
+    return True
+    
+
+
+
 def ptrace(rhoAB, dimA, dimB):
     """
     rhoAB : density matrix
@@ -67,6 +110,9 @@ def ptrace(rhoAB, dimA, dimB):
         p = torch.kron(id1, id2[i]) @ rhoAB @ torch.kron(id1, id2[i].reshape(mat_dim_B, 1))
         pout += p
     return pout
+
+
+
 
 
 def partial_trace(rho,N,trace_lst):
@@ -95,6 +141,12 @@ def partial_trace(rho,N,trace_lst):
     new_lst = [ i-1 for i in trace_lst[1:] ] #trace掉一个qubit，他后面的qubit索引号要减1
     
     return ptrace(rho_nxt,N-1,new_lst) + 0j
+
+
+
+
+
+
 
 def measure(state,M,rho=False,physic=False):
     if not rho: #输入态为态矢，而非密度矩阵

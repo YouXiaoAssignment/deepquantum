@@ -331,6 +331,55 @@ class ring_of_cnot2(Operation):
 
 
 
+#=========================================================================================
+
+
+
+
+class BasicEntangleLayer(Operation):
+    label = "BasicEntangleLayer"
+    
+    def __init__(self,N,wires,params_lst):
+        
+        if 3*len(wires) != len(params_lst):
+            raise ValueError("BasicEntangleLayer: number of parameters not match")
+        if len(wires) > N:
+            raise ValueError("BasicEntangleLayer: number of wires must <= N")
+        if len(wires) < 2:
+            raise ValueError("BasicEntangleLayer: number of wires must >= 2")
+        self.nqubits = N
+        self.wires = wires
+        self.num_params = len(params_lst)
+        self.params = params_lst
+        
+        self.part1 = YZYLayer(self.nqubits, self.wires, self.params)
+        self.part2 = ring_of_cnot(self.nqubits, self.wires)
+        
+    def U_expand(self):
+        rst = self.part2.U_expand() @ self.part1.U_expand()
+        return rst
+        
+    def info(self):
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':self.wires, 'params':self.params}
+        return info
+    
+    def params_update(self,params_lst):
+        self.num_params = len(params_lst)
+        self.params = params_lst
+        self.part1 = YZYLayer(self.nqubits, self.wires, self.params)
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
     print('start')
     N = 2
