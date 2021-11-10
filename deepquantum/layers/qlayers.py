@@ -339,9 +339,9 @@ class ring_of_cnot2(Operation):
 class BasicEntangleLayer(Operation):
     label = "BasicEntangleLayer"
     
-    def __init__(self,N,wires,params_lst):
+    def __init__(self, N, wires, params_lst, repeat=1):
         
-        if 3*len(wires) != len(params_lst):
+        if 3*len(wires)*repeat != len(params_lst):
             raise ValueError("BasicEntangleLayer: number of parameters not match")
         if len(wires) > N:
             raise ValueError("BasicEntangleLayer: number of wires must <= N")
@@ -351,12 +351,18 @@ class BasicEntangleLayer(Operation):
         self.wires = wires
         self.num_params = len(params_lst)
         self.params = params_lst
+        self.repeat = repeat
         
-        self.part1 = YZYLayer(self.nqubits, self.wires, self.params)
-        self.part2 = ring_of_cnot(self.nqubits, self.wires)
+        self.part1_lst, self.part2_lst = [], []
+        for i in range(self.repeat):
+            self.part1_lst.append( YZYLayer(self.nqubits, self.wires, self.params[i*3*len(wires):(i+1)*3*len(wires)]) )
+            self.part2_lst.append( ring_of_cnot(self.nqubits, self.wires) )
+            
         
     def U_expand(self):
-        rst = self.part2.U_expand() @ self.part1.U_expand()
+        rst = torch.eye(2**self.nqubits) + 0j
+        for i in range(self.repeat):
+            rst = self.part2_lst[i].U_expand() @ self.part1_lst[i].U_expand() @ rst
         return rst
         
     def info(self):
@@ -366,7 +372,12 @@ class BasicEntangleLayer(Operation):
     def params_update(self,params_lst):
         self.num_params = len(params_lst)
         self.params = params_lst
-        self.part1 = YZYLayer(self.nqubits, self.wires, self.params)
+        self.part1_lst, self.part2_lst = [], []
+        L = 3*len(self.wires)
+        for i in range(self.repeat):
+            self.part1_lst.append( YZYLayer(self.nqubits, self.wires, self.params[i*L:(i+1)*L]) )
+            self.part2_lst.append( ring_of_cnot(self.nqubits, self.wires) )
+        
 
 
 

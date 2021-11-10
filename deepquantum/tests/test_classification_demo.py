@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov  9 14:06:06 2021
+Created on Wed Nov 10 14:53:04 2021
 
 @author: shish
 """
-
 
 import torch
 import torch.nn as nn
@@ -18,7 +17,7 @@ from deepquantum.gates.qmath import multi_kron, measure, IsUnitary, IsNormalized
 import deepquantum.gates.qoperator as op
 from deepquantum.gates.qcircuit import Circuit
 from deepquantum.embeddings.qembedding import PauliEncoding
-from deepquantum.layers.qlayers import YZYLayer, ZXLayer,ring_of_cnot, ring_of_cnot2
+from deepquantum.layers.qlayers import YZYLayer, ZXLayer,ring_of_cnot, ring_of_cnot2, BasicEntangleLayer
 
 
 
@@ -32,7 +31,7 @@ class qcir(nn.Module):
         #属性：量子线路qubit数目，随机初始化的线路参数，测量力学量列表
         self.nqubits = nqubits
         self.weight = \
-            nn.Parameter( nn.init.uniform_(torch.empty(18*self.nqubits), a=0.0, b=2*torch.pi) )
+            nn.Parameter( nn.init.uniform_(torch.empty(21*self.nqubits), a=0.0, b=2*torch.pi) )
         
         self.M_lst = self.Zmeasure()
 
@@ -59,22 +58,17 @@ class qcir(nn.Module):
         batch_size = len(input_lst_batch)
         phi_encoded_batch = torch.zeros( batch_size, 2**self.nqubits) + 0j
         for i, inputs in enumerate(input_lst_batch):
-            e = PauliEncoding(self.nqubits, inputs, wires_lst,pauli='Y')
-            E = e.U_expand() #编码矩阵
-            phi_encoded_batch[i] = E @ c1.state_init #矩阵与列向量相乘
+            e1 = PauliEncoding(self.nqubits, inputs, wires_lst,pauli='Y')
+            e2 = PauliEncoding(self.nqubits, inputs, wires_lst,pauli='Z')
+            E1 = e1.U_expand() #编码矩阵
+            E2 = e2.U_expand()
+            phi_encoded_batch[i] = E2 @ E1 @ c1.state_init #矩阵与列向量相乘
         
         #variation变分部分
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[0:3*self.nqubits]) )
-        c1.add( ring_of_cnot(self.nqubits, wires_lst) )
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[3*self.nqubits:6*self.nqubits]) )
-        c1.add( ring_of_cnot(self.nqubits, wires_lst) )
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[6*self.nqubits:9*self.nqubits]) )
-        c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[9*self.nqubits:12*self.nqubits]) )
-        c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[12*self.nqubits:15*self.nqubits]) )
-        c1.add( ring_of_cnot(self.nqubits, wires_lst) )
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[15*self.nqubits:18*self.nqubits]) )
+        repeat = 6
+        c1.add( BasicEntangleLayer(self.nqubits, wires_lst, self.weight[0:3*repeat*self.nqubits], repeat=repeat) )
+        
+        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[3*repeat*self.nqubits:3*(repeat+1)*self.nqubits]) )
         
         U = c1.U()
 
@@ -96,17 +90,17 @@ class qcir(nn.Module):
         #以3个qubit的线路为例，把3个[batch,1]的矩阵拼接为[batch,3]
         rst = torch.cat( tuple(measure_rst),dim=1 ) 
         
-        #把值域做拉伸，从[-1,1]变为[-4,4]
-        rst = ( rst + 0 ) * 8
-        #return rst
+        #把值域做拉伸，从[-1,1]到[0,1]
+        rst = ( rst + 1 ) * 0.5
+        return rst
         
-        rst_average = rst[:,0]
-        for i in range(1,rst.shape[1]):
-            rst_average += rst[:,i]
+        # rst_average = rst[:,0]
+        # for i in range(1,rst.shape[1]):
+        #     rst_average += rst[:,i]
         
-        rst_average = rst_average * (1.0/rst.shape[1])
+        # rst_average = rst_average * (1.0/rst.shape[1])
             
-        return rst_average.view(-1,1)
+        # return rst_average.view(-1,1)
         
         
         
@@ -128,8 +122,10 @@ class qnet(nn.Module):
         
         #输入数据的非线性预处理
         #pre_batch = torch.sqrt( 0.5*(1 + torch.sigmoid(x_batch)) )
-        #pre_batch = torch.arcsin( -1 + x_batch/torch.pi )
-        pre_batch = x_batch
+        #pre_batch = torch.arctan( x_batch )
+        pre_batch = torch.arcsin( x_batch )
+        #pre_batch = torch.arcsin( x_batch*x_batch )
+        #pre_batch = x_batch
         
         cir_out = self.circuit ( pre_batch )
         
@@ -144,8 +140,10 @@ class qnet(nn.Module):
 
 
 def foo(x1,x2):
-    #y = 0.5*(2*x1 - 2*math.pi)
-    y = 2*math.cos(2*x1+1*x2)
+    if x1**2 + x2**2 > 0.5:
+        y = 1
+    else:
+        y = 0
     return y
 
 
@@ -153,7 +151,7 @@ def foo(x1,x2):
 
 if __name__ == "__main__":
     
-    N = 3
+    N = 2    #量子线路的qubit总数
     num_examples = 2048
     num_inputs = 2
     num_outputs = 1
@@ -161,10 +159,10 @@ if __name__ == "__main__":
     features = torch.empty( num_examples,num_inputs )
     labels = torch.empty( num_examples,num_outputs )
     for i in range(num_examples):
-        features[i] = torch.rand(num_inputs)*2*math.pi
+        features[i] = torch.rand(num_inputs)*2 - 1 #输入值范围是[-1,1]
 
     for i in range(num_examples):
-        labels[i] = foo( features[i][0], features[i][1] ) + 1e-3*random.random()
+        labels[i] = foo( features[i][0], features[i][1] )
     
     def data_iter(batch_size, features, labels):
         #输入batch_size，输入训练集地数据features+标签labels
@@ -174,7 +172,6 @@ if __name__ == "__main__":
         for i in range(0,num_examples,batch_size):
             #每次取batch_size个训练样本,j代表索引
             j = torch.LongTensor( indices[i:min(i+batch_size,num_examples)] ) 
-            #print(features.index_select(0,j), labels.index_select(0,j))
             yield features.index_select(0,j), labels.index_select(0,j)
             #把张量沿着0维，只保留取出索引号对应的元素
     
@@ -188,11 +185,6 @@ if __name__ == "__main__":
     #optimizer = optim.SGD(net1.parameters(), lr=0.1) #lr为学习率
     optimizer = optim.Adam(net1.parameters(), lr=0.01) #lr为学习率
     
-    #lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='min',factor=0.1,patience=10,verbose=False,
-    #                                      threshold=0.0001, threshold_mode='rel',cooldown=0,min_lr=0,eps=1e-6)
-    
-    #lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-    
     lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=[5,10,15], gamma=0.8)
     
     
@@ -200,7 +192,7 @@ if __name__ == "__main__":
     
     #torch.cuda.set_device(0)
     num_epochs = 30;
-    batch_size = 128;
+    batch_size = 1024;
     
     #记录loss随着epoch的变化，用于后续绘图
     epoch_lst = [i+1 for i in range(num_epochs)]
@@ -214,7 +206,7 @@ if __name__ == "__main__":
             #squeeze是为了把y维度从1x3变成3
             l = loss(output.squeeze(),y.squeeze());
             #梯度清0
-            optimizer.zero_grad() 
+            optimizer.zero_grad()
             l.backward()
             #print("weights_grad2:",net1.circuit.weight.grad,'  weight is leaf?:',net1.circuit.weight.is_leaf)
             optimizer.step()
@@ -224,24 +216,27 @@ if __name__ == "__main__":
         loss_lst.append(l.item())
         print("epoch:%d, loss:%f" % (epoch,l.item()),\
               ';current lr:', optimizer.state_dict()["param_groups"][0]["lr"])
-        
-        #print(net1.circuit.weight)
     
     
     
-    # plt.cla()
-    # plt.subplot(121)
-    # xx = list(features[:num_examples,0])
+    plt.cla()
     
-    # yy = [float(each) for each in net1( features[:num_examples,:] ).squeeze() ]
-    # xx = [float( xi ) for xi in xx]
-    # yy_t = [foo(xi) for xi in xx]
-    # plt.plot(xx,yy,'m^',linewidth=1, markersize=2)
-    # plt.plot(xx,yy_t,'g^',linewidth=1, markersize=0.5)
+    x1_lst = list(features[:num_examples,0])
+    x2_lst = list(features[:num_examples,1])
     
-    # plt.subplot(122)
-    # plt.plot(epoch_lst,loss_lst,'r^--',linewidth=1, markersize=1.5)
-    # plt.show()
+    plt.subplot(131)
+    y_t = [foo(x1_lst[i],x2_lst[i]) for i in range(len(x1_lst))]
+    color_lst = ['b' if label==1 else 'r' for label in y_t]
+    plt.scatter(x1_lst, x2_lst, s=1, c=color_lst)
+    
+    plt.subplot(132)
+    y_prediction = [float(each) for each in net1( features[:num_examples,:] ).squeeze() ]
+    color_pred_lst = ['m' if label>0.5 else 'g' for label in y_prediction]
+    plt.scatter(x1_lst, x2_lst, s=1, c=color_pred_lst)
+    
+    plt.subplot(133)
+    plt.plot(epoch_lst,loss_lst,'r^--',linewidth=1, markersize=1.5)
+    plt.show()
     
     input("")
     
