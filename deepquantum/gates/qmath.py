@@ -140,7 +140,7 @@ def partial_trace(rho,N,trace_lst):
     
     new_lst = [ i-1 for i in trace_lst[1:] ] #trace掉一个qubit，他后面的qubit索引号要减1
     
-    return ptrace(rho_nxt,N-1,new_lst) + 0j
+    return partial_trace(rho_nxt,N-1,new_lst) + 0j
 
 
 
