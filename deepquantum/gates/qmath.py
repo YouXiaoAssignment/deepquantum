@@ -161,7 +161,7 @@ def measure(state,M,rho=False,physic=False):
             return rst
                   
     else:#state是1个密度矩阵，此时不支持batch
-        if torch.abs(torch.trace(rho) - 1) > 1e-4:
+        if torch.abs(torch.trace(state) - 1) > 1e-4:
             raise ValueError("trace of density matrix must be 1")
         return torch.trace(state @ M).real 
 
