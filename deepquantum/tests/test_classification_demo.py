@@ -66,9 +66,14 @@ class qcir(nn.Module):
         
         #variation变分部分
         repeat = 6
-        c1.add( BasicEntangleLayer(self.nqubits, wires_lst, self.weight[0:3*repeat*self.nqubits], repeat=repeat) )
+        c1.add( BasicEntangleLayer(self.nqubits, 
+                                   wires_lst, 
+                                   self.weight[0:3*repeat*self.nqubits], 
+                                   repeat=repeat) )
         
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[3*repeat*self.nqubits:3*(repeat+1)*self.nqubits]) )
+        c1.add( YZYLayer(self.nqubits, 
+                         wires_lst, 
+                         self.weight[3*repeat*self.nqubits:3*(repeat+1)*self.nqubits]) )
         
         U = c1.U()
 

@@ -139,7 +139,7 @@ class Hadamard(Observable, Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
         return info
     
     def params_update(self,params_lst):
@@ -167,7 +167,7 @@ class PauliX(Observable, Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
         return info
     
     def params_update(self,params_lst):
@@ -194,7 +194,7 @@ class PauliY(Observable, Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
         return info
     
     def params_update(self,params_lst):
@@ -221,7 +221,7 @@ class PauliZ(Observable, DiagonalOperation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':None}
         return info
     
     def params_update(self,params_lst):
@@ -237,6 +237,7 @@ class rx(Operation):
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
     def __init__(self,theta,N=None,wires=None):
+        theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
         self.params = theta
@@ -252,7 +253,7 @@ class rx(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
         return info
     
     def params_update(self,params):
@@ -274,6 +275,7 @@ class ry(Operation):
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
     def __init__(self,theta,N=None,wires=None):
+        theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
         self.params = theta
@@ -289,7 +291,7 @@ class ry(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
         return info
     
     def params_update(self,params):
@@ -311,6 +313,7 @@ class rz(Operation):
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
     def __init__(self,theta,N=None,wires=None):
+        theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
         self.params = theta
@@ -326,7 +329,7 @@ class rz(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
         return info
     
     def params_update(self,params):
@@ -348,6 +351,7 @@ class rxx(Operation):
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
     def __init__(self,theta,N=None,wires=None):#wires以list形式输入
+        theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
         self.params = theta
@@ -374,7 +378,7 @@ class rxx(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':self.params}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':self.params}
         return info
     
     def params_update(self,params):
@@ -399,6 +403,7 @@ class ryy(Operation):
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
     def __init__(self,theta,N=None,wires=None):#wires以list形式输入
+        theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
         self.params = theta
@@ -425,7 +430,7 @@ class ryy(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':self.params}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':self.params}
         return info
     
     def params_update(self,params):
@@ -450,6 +455,7 @@ class rzz(Operation):
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
     def __init__(self,theta,N=None,wires=None):#wires以list形式输入
+        theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
         self.params = theta
@@ -476,7 +482,7 @@ class rzz(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':self.params}
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':self.params}
         return info
     
     def params_update(self,params):
@@ -516,7 +522,7 @@ class cnot(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':None}
+        info = {'label':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':None}
         return info
     
     def params_update(self,params):
@@ -553,7 +559,7 @@ class cz(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':None}
+        info = {'label':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':None}
         return info
     
     def params_update(self,params):
@@ -597,7 +603,7 @@ class toffoli(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':self.control_lst, 'target_lst':self.target_lst,'params':None}
+        info = {'label':self.label, 'contral_lst':self.control_lst, 'target_lst':self.target_lst,'params':None}
         return info
     
     def params_update(self,params):
@@ -636,7 +642,7 @@ class multi_control_cnot(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'gate':self.label, 'contral_lst':self.control_lst, 'target_lst':self.target_lst,'params':None}
+        info = {'label':self.label, 'contral_lst':self.control_lst, 'target_lst':self.target_lst,'params':None}
         return info
     
     def params_update(self,params):

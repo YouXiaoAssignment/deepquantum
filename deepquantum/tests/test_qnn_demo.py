@@ -69,7 +69,7 @@ class qcir(nn.Module):
         c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
         c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[9*self.nqubits:12*self.nqubits]) )
         c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[12*self.nqubits:15*self.nqubits]) )
+        c1.YZYLayer( wires_lst, self.weight[12*self.nqubits:15*self.nqubits] ) 
         
         U = c1.U()
 
