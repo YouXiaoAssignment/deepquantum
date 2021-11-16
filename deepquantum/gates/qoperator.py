@@ -126,13 +126,13 @@ class Hadamard(Observable, Operation):
     self_inverse = True
     matrix = torch.sqrt( torch.tensor(0.5) ) * torch.tensor([[1,1],[1,-1]]) + 0j
     
-    def __init__(self,N=None,wires=None):
+    def __init__(self,N=-1,wires=-1):
         self.nqubits = N
         self.wires = wires
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
             raise ValueError("Hadamard gate input error!")
@@ -154,13 +154,13 @@ class PauliX(Observable, Operation):
     self_inverse = True
     matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
-    def __init__(self,N=None,wires=None):
+    def __init__(self,N=-1,wires=-1):
         self.nqubits = N
         self.wires = wires
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
             raise ValueError("PauliX gate input error!")
@@ -181,14 +181,15 @@ class PauliY(Observable, Operation):
     self_inverse = True
     matrix = torch.tensor([[0,-1j],[1j,0]]) + 0j
     
-    def __init__(self,N=None,wires=None):
+    def __init__(self,N=-1,wires=-1):
         self.nqubits = N
         self.wires = wires
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
+            #return Operator.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
             raise ValueError("PauliY gate input error!")
     
@@ -208,13 +209,13 @@ class PauliZ(Observable, DiagonalOperation):
     self_inverse = True
     matrix = torch.tensor([[1,0],[0,-1]]) + 0j
     
-    def __init__(self,N=None,wires=None):
+    def __init__(self,N=-1,wires=-1):
         self.nqubits = N
         self.wires = wires
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
             raise ValueError("PauliZ gate input error!")
@@ -236,7 +237,7 @@ class rx(Operation):
     self_inverse = False
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
-    def __init__(self,theta,N=None,wires=None):
+    def __init__(self,theta,N=-1,wires=-1):
         theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
@@ -246,7 +247,7 @@ class rx(Operation):
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
             raise ValueError("Rx gate input error!")
@@ -274,7 +275,7 @@ class ry(Operation):
     self_inverse = False
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
-    def __init__(self,theta,N=None,wires=None):
+    def __init__(self,theta,N=-1,wires=-1):
         theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
@@ -284,7 +285,7 @@ class ry(Operation):
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
             raise ValueError("Ry gate input error!")
@@ -312,7 +313,7 @@ class rz(Operation):
     self_inverse = False
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
-    def __init__(self,theta,N=None,wires=None):
+    def __init__(self,theta,N=-1,wires=-1):
         theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
@@ -322,7 +323,7 @@ class rz(Operation):
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
             raise ValueError("Rz gate input error!")
@@ -350,7 +351,7 @@ class rxx(Operation):
     self_inverse = False
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
-    def __init__(self,theta,N=None,wires=None):#wires以list形式输入
+    def __init__(self,theta,N=-1,wires=-1):#wires以list形式输入
         theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
@@ -360,7 +361,7 @@ class rxx(Operation):
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             if self.nqubits < 1:
                 raise ValueError("number of qubits N must be >= 1")
             if self.wires[0] < 0 or self.wires[0] > self.nqubits - 1 or self.wires[1] < 0  or self.wires[0] > self.nqubits - 1:
@@ -402,7 +403,7 @@ class ryy(Operation):
     self_inverse = False
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
-    def __init__(self,theta,N=None,wires=None):#wires以list形式输入
+    def __init__(self,theta,N=-1,wires=-1):#wires以list形式输入
         theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
@@ -412,7 +413,7 @@ class ryy(Operation):
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             if self.nqubits < 1:
                 raise ValueError("number of qubits N must be >= 1")
             if self.wires[0] < 0 or self.wires[0] > self.nqubits - 1 or self.wires[1] < 0  or self.wires[0] > self.nqubits - 1:
@@ -454,7 +455,7 @@ class rzz(Operation):
     self_inverse = False
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
-    def __init__(self,theta,N=None,wires=None):#wires以list形式输入
+    def __init__(self,theta,N=-1,wires=-1):#wires以list形式输入
         theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
@@ -464,7 +465,7 @@ class rzz(Operation):
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             if self.nqubits < 1:
                 raise ValueError("number of qubits N must be >= 1")
             if self.wires[0] < 0 or self.wires[0] > self.nqubits - 1 or self.wires[1] < 0  or self.wires[0] > self.nqubits - 1:
@@ -506,13 +507,13 @@ class cnot(Operation):
                            [0,0,0,1],\
                            [0,0,1,0]]) + 0j
     
-    def __init__(self,N=None,wires=None):#wires以list形式输入
+    def __init__(self,N=-1,wires=-1):#wires以list形式输入
         self.nqubits = N
         self.wires = wires
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             sigma_x = torch.tensor( [[0,1],[1,0]] ) + 0j
             control = self.wires[0]
             target = self.wires[1]
@@ -543,13 +544,13 @@ class cz(Operation):
                            [0,0,1,0],\
                            [0,0,0,-1]]) + 0j
     
-    def __init__(self,N=None,wires=None):#wires以list形式输入
+    def __init__(self,N=-1,wires=-1):#wires以list形式输入
         self.nqubits = N
         self.wires = wires
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             sigma_z = torch.tensor( [[1,0],[0,-1]] ) + 0j
             control = self.wires[0]
             target = self.wires[1]
@@ -581,10 +582,10 @@ class toffoli(Operation):
                            [0,0,0,1,0,0,0,0],\
                            [0,0,0,0,1,0,0,0],\
                            [0,0,0,0,0,1,0,0],\
-                           [0,0,0,1,0,0,0,1],\
-                           [0,0,0,1,0,0,1,0]]) + 0j
+                           [0,0,0,0,0,0,0,1],\
+                           [0,0,0,0,0,0,1,0]]) + 0j
     
-    def __init__(self,N=None,wires=None):#wires以list形式输入
+    def __init__(self,N=-1,wires=-1):#wires以list形式输入
         self.nqubits = N
         if len(wires) != 3:
             raise ValueError("toffoli gate must be applied on 3 qubits")
@@ -594,7 +595,7 @@ class toffoli(Operation):
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             sigma_x = torch.tensor( [[0,1],[1,0]] ) + 0j
             
             return self.multi_control_gate( sigma_x, self.nqubits, self.control_lst, self.target_lst[0] )
@@ -622,7 +623,7 @@ class multi_control_cnot(Operation):
     self_inverse = True
     #matrix = None
     
-    def __init__(self,N=None,wires=None):#wires以list形式输入
+    def __init__(self,N=-1,wires=-1):#wires以list形式输入
         
         self.label = str(len(wires)-1)+"_control_cnot"
         self.num_wires = len(wires)
@@ -634,7 +635,7 @@ class multi_control_cnot(Operation):
         #self.U = self.U_expand()
     
     def U_expand(self):
-        if self.nqubits != None and self.wires != None:
+        if self.nqubits != -1 and self.wires != -1:
             sigma_x = torch.tensor( [[0,1],[1,0]] ) + 0j
             return self.multi_control_gate( sigma_x, self.nqubits, self.control_lst, self.target_lst[0] )
         else:
@@ -666,7 +667,7 @@ if __name__ == "__main__":
     # #print(h.label,' ',h.self_inverse)
     #c1 = cnot(5,[3,0])
     c1 = multi_control_cnot(6,[0,1,2,3])
-    print(c1.matrix)
+    #print(c1.matrix)
     print(c1.U_expand())
     print(c1.info())
     input("")
