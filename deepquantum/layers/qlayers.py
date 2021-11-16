@@ -354,7 +354,7 @@ class BasicEntangleLayer(Operation):
         self.repeat = repeat
         
         self.part1_lst, self.part2_lst = [], []
-        for i in range(self.repeat):
+        for i in range(int(self.repeat)):
             self.part1_lst.append( YZYLayer(self.nqubits, self.wires, self.params[i*3*len(wires):(i+1)*3*len(wires)]) )
             self.part2_lst.append( ring_of_cnot(self.nqubits, self.wires) )
             

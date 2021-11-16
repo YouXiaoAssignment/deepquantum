@@ -2,9 +2,9 @@ import numpy as np
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+from typing import List
 
-
-def multi_kron(lst):
+def multi_kron(lst:List[torch.Tensor]):
     rst = lst[0]
     for i in range( 1,len(lst) ):
         rst = torch.kron(rst, lst[i])
