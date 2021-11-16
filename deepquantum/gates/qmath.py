@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from typing import List
 
-def multi_kron(lst:List[torch.Tensor]):
+def multi_kron(lst):
     rst = lst[0]
     for i in range( 1,len(lst) ):
         rst = torch.kron(rst, lst[i])
