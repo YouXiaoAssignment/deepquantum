@@ -5,6 +5,11 @@ import torch.nn.functional as F
 
 class Circuit(object):
     def __init__(self, N):
+        
+        self.paulix = torch.tensor([[0, 1.0], [1, 0]]) + 0j
+        self.pauliy = torch.tensor([[0, -1j], [1j, 0.0]]) + 0j
+        self.pauliz = torch.tensor([[1, 0], [0, -1.0]]) + 0j
+        
         self._U = None
         self.n_qubits = N  # 总QuBit的个数
         self.gate_list = []  # 顺序保存门结构
@@ -30,6 +35,8 @@ class Circuit(object):
         """
         kron the data in the list in order
         """
+        if len(x_list) == 0:
+            raise ValueError("input x_list can not be empty")
         x_k = torch.ones(1)
         for x in x_list:
             x_k = torch.kron(x_k, x)
@@ -46,22 +53,24 @@ class Circuit(object):
 
         if target >= N:
             raise ValueError("target must be integer < integer N")
+        lst1 = [torch.eye(2,2)]*N
+        lst1[target] = U
+        return self.multi_kron(lst1)
+        #return self.multi_kron([torch.eye(2)] * target + [U] + [torch.eye(2)] * (N - target - 1))
 
-        return self.multi_kron([torch.eye(2)] * target + [U] + [torch.eye(2)] * (N - target - 1))
+    # def gate_expand_2toN(self, U, N, targets):
+    #     """
+    #     representing a two-qubit gate that act on a system with N qubits.
 
-    def gate_expand_2toN(self, U, N, targets):
-        """
-        representing a two-qubit gate that act on a system with N qubits.
+    #     """
 
-        """
+    #     if N < 2:
+    #         raise ValueError("integer N must be larger or equal to 2")
 
-        if N < 2:
-            raise ValueError("integer N must be larger or equal to 2")
+    #     if targets[1] >= N:
+    #         raise ValueError("target must be integer < integer N")
 
-        if targets[1] >= N:
-            raise ValueError("target must be integer < integer N")
-
-        return self.multi_kron([torch.eye(2)] * targets[0] + [U] + [torch.eye(2)] * (N - targets[1] - 1))
+    #     return self.multi_kron([torch.eye(2)] * targets[0] + [U] + [torch.eye(2)] * (N - targets[1] - 1))
 
     def gate_sequence_product(self, left_to_right=True):
         """
@@ -202,7 +211,7 @@ class Circuit(object):
         assert control_qubit <= self.n_qubits
         assert 0 <= target_qubit < self.n_qubits, \
             "target qubit is not available"
-        self._add_gate('cnot', control_qubit, target_qubit)
+        self._add_gate('cnot', [control_qubit, target_qubit],None)
         self._add_u(self.two_qubit_control_gate(self._x_gate(), self.n_qubits, control_qubit, target_qubit))
 
     def x_gate(self, target_qubit):
@@ -229,7 +238,7 @@ class Circuit(object):
         self._add_gate('Y', target_qubit, None)
         self._add_u(self.gate_expand_1toN(self._y_gate(), self.n_qubits, target_qubit))
 
-    def Hcz(self, control_qubit, target_qubit):
+    def cz(self, control_qubit, target_qubit):
         assert isinstance(target_qubit, int), \
             "target qubit is not integer"
         assert isinstance(control_qubit, int), \
@@ -238,7 +247,7 @@ class Circuit(object):
         assert 0 <= target_qubit < self.n_qubits, \
             "target qubit is not available"
 
-        self._add_gate('cz', control_qubit, target_qubit)
+        self._add_gate('cz', [control_qubit, target_qubit],None)
         self._add_u(self.two_qubit_control_gate(self._z_gate(), self.n_qubits, control_qubit, target_qubit))
 
     def Hadamard(self, target_qubit):
@@ -259,8 +268,9 @@ class Circuit(object):
         assert target_qubit01 <= self.n_qubits
         assert target_qubit02 <= self.n_qubits
 
-        self._add_gate('rxx', target_qubit01, phi)
-        self._add_gate('rxx', target_qubit02, phi)
+        # self._add_gate('rxx', target_qubit01, phi)
+        # self._add_gate('rxx', target_qubit02, phi)
+        self._add_gate('rxx',[target_qubit01,target_qubit02], phi)
         if type(phi) == float or type(phi) == int:
             phi = torch.tensor(phi)
             self._add_u(self.two_qubit_rotation_gate(phi, self.n_qubits, target_qubit01, target_qubit02, way='rxx'))
@@ -280,8 +290,9 @@ class Circuit(object):
         assert target_qubit01 != target_qubit02, \
             "target qubit should not be the same"
 
-        self._add_gate('ryy', target_qubit01, phi)
-        self._add_gate('ryy', target_qubit02, phi)
+        # self._add_gate('ryy', target_qubit01, phi)
+        # self._add_gate('ryy', target_qubit02, phi)
+        self._add_gate('ryy', [target_qubit01,target_qubit02], phi)
         if type(phi) == float or type(phi) == int:
             phi = torch.tensor(phi)
             self._add_u(self.two_qubit_rotation_gate(phi, self.n_qubits, target_qubit01, target_qubit02, way='ryy'))
@@ -298,8 +309,9 @@ class Circuit(object):
         assert target_qubit01 <= self.n_qubits
         assert target_qubit02 <= self.n_qubits
 
-        self._add_gate('rzz', target_qubit01, phi)
-        self._add_gate('rzz', target_qubit02, phi)
+        # self._add_gate('rzz', target_qubit01, phi)
+        # self._add_gate('rzz', target_qubit02, phi)
+        self._add_gate('rzz', [target_qubit01,target_qubit02], phi)
         if type(phi) == float or type(phi) == int:
             phi = torch.tensor(phi)
             self._add_u(self.two_qubit_rotation_gate(phi, self.n_qubits, target_qubit01, target_qubit02, way='rzz'))
@@ -364,7 +376,7 @@ class Circuit(object):
 
     def _y_gate(self):
         """
-        Pauli x
+        Pauli y
         """
         return torch.tensor([[0,-1j], [1j,0]]) + 0j
 
@@ -372,25 +384,28 @@ class Circuit(object):
         H = torch.sqrt(torch.tensor(0.5)) * torch.tensor([[1, 1], [1, -1]]) + 0j
         return H
 
-    def expecval_ZI(self, state, nqubit, target):
+    def expecval_ZI(self, rho, nqubit, target):
         """
-        state为nqubit大小的密度矩阵，target为z门放置位置
+        rho为nqubit大小的密度矩阵，target为z门放置位置
 
         """
         zgate = self._z_gate()
         H = self.gate_expand_1toN(zgate, nqubit, target)
-        expecval = (state @ H).trace()  # [-1,1]
-        expecval_real = (expecval.real + 1) / 2  # [0,1]
+        expecval = (rho @ H).trace()  # [-1,1]
+        #expecval_real = (expecval.real + 1) / 2  # [0,1]
+        expecval_real = expecval.real
 
         return expecval_real
 
-    def measure(self, state, nqubit):
+    def measure(self, rho, nqubit):
         """
             测量nqubit次期望
+
         """
         measure = torch.zeros(nqubit, 1)
         for i in range(nqubit):
-            measure[i] = self.expecval_ZI(state, nqubit, list(range(nqubit))[i])
+            measure[i] = self.expecval_ZI(rho, nqubit, list(range(nqubit))[i])
+
         return measure
 
 

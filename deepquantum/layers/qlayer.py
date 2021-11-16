@@ -384,9 +384,11 @@ def RzzLayer(N, param_lst):
 
 
 if __name__ == "__main__":
-    b = all2all_cnot(3)
-    print(b)
-    print(cir.IsUnitary(b))
-    a = XYZLayer(3, [1, 1, 1, 2, 2, 2, 3, 3, 3])
-    print(a)
-    print(cir.IsUnitary(a))
+    print(XYZLayer(2,[1,1,1,1,1,1.0]))
+    input("")
+    # b = all2all_cnot(3)
+    # print(b)
+    # print(cir.IsUnitary(b))
+    # a = XYZLayer(3, [1, 1, 1, 2, 2, 2, 3, 3, 3])
+    # print(a)
+    # print(cir.IsUnitary(a))
