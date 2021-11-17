@@ -11,8 +11,8 @@ from deepquantum.gates import multi_kron, IsUnitary, IsHermitian
 
 class Operator(object):
     
-    @staticmethod #为了让该函数既可以实例化调用，也可以不实例化直接Operator.gate_expand_1toN()调用
-    def gate_expand_1toN(gate,N,index):
+    @staticmethod  #为了让该函数既可以实例化调用，也可以不实例化直接Operator.gate_expand_1toN()调用
+    def gate_expand_1toN(gate, N, index):
         '''
         不要直接用这个函数
         '''
@@ -20,7 +20,7 @@ class Operator(object):
             raise ValueError("number of qubits N must be >= 1")
         if index < 0 or index > N - 1:
             raise ValueError("index must between 0~N-1")
-        lst1 = [torch.eye(2,2)]*N
+        lst1 = [torch.eye(2, 2)]*N
         lst1[index] = gate
         return multi_kron(lst1) + 0j
     
@@ -29,7 +29,7 @@ class Operator(object):
 class Operation(Operator):
     
     @staticmethod
-    def two_qubit_control_gate(U,N,control,target):
+    def two_qubit_control_gate(U, N, control, target):
         '''
         不建议直接使用该函数
         two_qubit_control_gate该函数可实现任意两比特受控门
@@ -236,12 +236,12 @@ class rx(Operation):
     self_inverse = False
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
-    def __init__(self,theta,N=None,wires=None):
+    def __init__(self, theta, N=None, wires=None):
         theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
         self.params = theta
-        self.matrix = torch.cos(theta/2.0)*torch.eye(2,2) \
+        self.matrix = torch.cos(theta/2.0)*torch.eye(2, 2) \
             - 1j*torch.sin(theta/2.0)*PauliX.matrix + 0j
         #self.U = self.U_expand()
     
@@ -253,18 +253,13 @@ class rx(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
+        info = {'label': self.label, 'contral_lst': [], 'target_lst': [self.wires], 'params': self.params}
         return info
     
     def params_update(self,params):
         self.params = params
         self.matrix = torch.cos(self.params/2.0)*torch.eye(2,2) \
             - 1j*torch.sin(self.params/2.0)*PauliX.matrix + 0j
-
-
-
-
-
 
 
 class ry(Operation):
@@ -274,12 +269,12 @@ class ry(Operation):
     self_inverse = False
     #matrix = torch.tensor([[0,1],[1,0]]) + 0j
     
-    def __init__(self,theta,N=None,wires=None):
+    def __init__(self, theta, N=None, wires=None):
         theta = theta + torch.tensor(0.0)
         self.nqubits = N
         self.wires = wires
         self.params = theta
-        self.matrix = torch.cos(theta/2.0)*torch.eye(2,2) \
+        self.matrix = torch.cos(theta/2.0)*torch.eye(2, 2) \
             - 1j*torch.sin(theta/2.0)*PauliY.matrix + 0j
         #self.U = self.U_expand()
     
@@ -296,7 +291,7 @@ class ry(Operation):
     
     def params_update(self,params):
         self.params = params
-        self.matrix = torch.cos(self.params/2.0)*torch.eye(2,2) \
+        self.matrix = torch.cos(self.params/2.0)*torch.eye(2, 2) \
             - 1j*torch.sin(self.params/2.0)*PauliY.matrix + 0j
 
 
@@ -329,10 +324,10 @@ class rz(Operation):
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
-        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
+        info = {'label': self.label, 'contral_lst': [], 'target_lst': [self.wires],'params': self.params}
         return info
     
-    def params_update(self,params):
+    def params_update(self, params):
         self.params = params
         self.matrix = torch.cos(self.params/2.0)*torch.eye(2,2) \
             - 1j*torch.sin(self.params/2.0)*PauliZ.matrix + 0j
@@ -367,10 +362,10 @@ class rxx(Operation):
                 raise ValueError("qbit index must between 0~N-1")
             if self.wires[0] == self.wires[1]:
                 raise ValueError("qbit1 cannot be equal to qbit2")
-            lst1 = [torch.eye(2,2)]*self.nqubits
-            lst2 = [torch.eye(2,2)]*self.nqubits
-            lst2[self.wires[0]] =  PauliX.matrix
-            lst2[self.wires[1]] =  PauliX.matrix
+            lst1 = [torch.eye(2, 2)]*self.nqubits
+            lst2 = [torch.eye(2, 2)]*self.nqubits
+            lst2[self.wires[0]] = PauliX.matrix
+            lst2[self.wires[1]] = PauliX.matrix
             rst = torch.cos(self.params/2.0)*multi_kron(lst1) - 1j*torch.sin(self.params/2.0)*multi_kron(lst2)
             return rst + 0j
         else:
@@ -385,13 +380,6 @@ class rxx(Operation):
         self.params = params
         self.matrix = torch.cos(self.params/2.0)*torch.eye(4,4) \
             - 1j*torch.sin(self.params/2.0)*torch.kron(PauliX.matrix,PauliX.matrix) + 0j
-
-
-
-
-
-
-
 
 
 
@@ -649,14 +637,6 @@ class multi_control_cnot(Operation):
         pass
 
 
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
     # print('start')
     # h0 = rx(torch.tensor(0.5),3,1)
@@ -666,7 +646,7 @@ if __name__ == "__main__":
     # #print(h.label,' ',h.self_inverse)
     #c1 = cnot(5,[3,0])
     c1 = multi_control_cnot(6,[0,1,2,3])
-    print(c1.matrix)
+    # print(c1.matrix)
     print(c1.U_expand())
     print(c1.info())
     input("")

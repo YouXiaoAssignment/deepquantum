@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 def multi_kron(lst):
     rst = lst[0]
-    for i in range( 1,len(lst) ):
+    for i in range(1, len(lst)):
         rst = torch.kron(rst, lst[i])
     return rst
 
@@ -69,7 +69,7 @@ def IsNormalized(vector):
         #print("vector is not normalized")
         return False
         #raise ValueError("vector is not normalized")
-        
+
     return True
 
 
@@ -81,13 +81,13 @@ def IsHermitian(matrix):
     if (matrix.shape)[0] != (matrix.shape)[1]:  # 验证是否为方阵
         raise ValueError("not square matrix!")
 
-    n = matrix.shape[0] #行数
+    n = matrix.shape[0]  #行数
     
     for i in range(n):
-        for j in range(i,n,1):
+        for j in range(i, n, 1):
             if torch.abs(matrix[i][j] - matrix[j][i].conj()) > 1e-6:
                 return False
-    
+
     return True
     
 
@@ -125,7 +125,7 @@ def partial_trace(rho,N,trace_lst):
     if rho.shape[0] != 2**N:
         raise ValueError('rho dim error')
     
-    trace_lst.sort()#必须从小到大排列
+    trace_lst.sort() #必须从小到大排列
     rho = rho + 0j
     if len(trace_lst) == 0:
         return rho + 0j
@@ -140,23 +140,18 @@ def partial_trace(rho,N,trace_lst):
     
     new_lst = [ i-1 for i in trace_lst[1:] ] #trace掉一个qubit，他后面的qubit索引号要减1
     
-    return partial_trace(rho_nxt,N-1,new_lst) + 0j
+    return partial_trace(rho_nxt, N-1, new_lst) + 0j
 
 
-
-
-
-
-
-def measure(state,M,rho=False,physic=False):
+def measure(state, M, rho=False, physic=False):
     if not rho: #输入态为态矢，而非密度矩阵
-        if len(state.shape) != 2: #state必须是二维张量，即便只有1个态矢也要view成(n,1)
-            raise ValueError("state必须是二维张量,即便batch只有1个态矢也要view成(n,1)")
-        else: #state为batch_size个态矢，即二维张量
+        if len(state.shape) != 2:  #state必须是二维张量，即便只有1个态矢也要view成(n,1)
+            raise ValueError("state必须是二维张量, 即便batch只有1个态矢也要view成(n,1)")
+        else:  #state为batch_size个态矢，即二维张量
             
             m1 = (dag(state) @ M @ state)
             
-            rst = torch.diag(m1).view(-1,1) #取对角元变成1维张量，在被view成2维张量
+            rst = torch.diag(m1).view(-1, 1)  #取对角元变成1维张量，在被view成2维张量
             rst = rst.real
             return rst
                   

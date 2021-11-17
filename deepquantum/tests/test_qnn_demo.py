@@ -40,13 +40,13 @@ class qcir(nn.Module):
         #生成测量力学量的列表
         M_lst = []
         for i in range(self.nqubits):
-            Mi = op.PauliZ(self.nqubits,i).U_expand()
+            Mi = op.PauliZ(self.nqubits, i).U_expand()
             M_lst.append( Mi )
         
         return M_lst
             
     
-    def build_circuit(self,input_lst_batch):
+    def build_circuit(self, input_lst_batch):
         '''
         构建变分量子线路的演化矩阵
         '''
@@ -58,7 +58,7 @@ class qcir(nn.Module):
         batch_size = len(input_lst_batch)
         phi_encoded_batch = torch.zeros( batch_size, 2**self.nqubits) + 0j
         for i, inputs in enumerate(input_lst_batch):
-            e = PauliEncoding(self.nqubits, inputs, wires_lst,pauli='Y')
+            e = PauliEncoding(self.nqubits, inputs, wires_lst, pauli='Y')
             E = e.U_expand() #编码矩阵
             phi_encoded_batch[i] = E @ c1.state_init #矩阵与列向量相乘
         

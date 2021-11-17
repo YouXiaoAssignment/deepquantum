@@ -135,7 +135,7 @@ if __name__ == '__main__':
     for each in cir.gate:
         print(each.info()['label'])
     
-    print('\n',cir.U())
+    print('\n', cir.U())
     
     input('')
         

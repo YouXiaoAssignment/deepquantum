@@ -53,7 +53,7 @@ class Circuit(object):
 
         if target >= N:
             raise ValueError("target must be integer < integer N")
-        lst1 = [torch.eye(2,2)]*N
+        lst1 = [torch.eye(2, 2)]*N
         lst1[target] = U
         return self.multi_kron(lst1)
         #return self.multi_kron([torch.eye(2)] * target + [U] + [torch.eye(2)] * (N - target - 1))
@@ -324,6 +324,10 @@ class Circuit(object):
     def U(self):
         return self.gate_sequence_product()
 
+    def _Hadamard(self):
+        H = torch.sqrt(torch.tensor(0.5)) * torch.tensor([[1, 1], [1, -1]]) + 0j
+        return H
+
 #   内置函数
     def _I(self):
         """Single-qubit Identification gate
@@ -362,11 +366,6 @@ class Circuit(object):
         return torch.cat((torch.exp(-1j * phi / 2).unsqueeze(dim=0), torch.zeros(1),
                           torch.zeros(1), torch.exp(1j * phi / 2).unsqueeze(dim=0)), dim=0).reshape(2, -1)
 
-    def _z_gate(self):
-        """
-        Pauli z
-        """
-        return torch.tensor([[1, 0], [0, -1]]) + 0j
 
     def _x_gate(self):
         """
@@ -380,9 +379,12 @@ class Circuit(object):
         """
         return torch.tensor([[0,-1j], [1j,0]]) + 0j
 
-    def _Hadamard(self):
-        H = torch.sqrt(torch.tensor(0.5)) * torch.tensor([[1, 1], [1, -1]]) + 0j
-        return H
+    def _z_gate(self):
+        """
+        Pauli z
+        """
+        return torch.tensor([[1, 0], [0, -1]]) + 0j
+
 
     def expecval_ZI(self, rho, nqubit, target):
         """
@@ -391,7 +393,9 @@ class Circuit(object):
         """
         zgate = self._z_gate()
         H = self.gate_expand_1toN(zgate, nqubit, target)
+        print("H::", H)
         expecval = (rho @ H).trace()  # [-1,1]
+        print("expecval::",expecval)
         #expecval_real = (expecval.real + 1) / 2  # [0,1]
         expecval_real = expecval.real
 
@@ -408,6 +412,12 @@ class Circuit(object):
 
         return measure
 
+
+
+if __name__ == '__main__':
+    c = Circuit(10)
+    rho = torch.tensor([[1, 0], [0, 0]]) + 0j
+    print(c.measure(rho, 1))
 
 
 
