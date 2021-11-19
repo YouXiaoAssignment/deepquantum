@@ -135,7 +135,7 @@ class Hadamard(Observable, Operation):
         if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
-            raise ValueError("Hadamard gate input error!")
+            raise ValueError("Hadamard gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -163,7 +163,7 @@ class PauliX(Observable, Operation):
         if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
-            raise ValueError("PauliX gate input error!")
+            raise ValueError("PauliX gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -191,7 +191,7 @@ class PauliY(Observable, Operation):
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
             #return Operator.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
-            raise ValueError("PauliY gate input error!")
+            raise ValueError("PauliY gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -218,7 +218,7 @@ class PauliZ(Observable, DiagonalOperation):
         if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
-            raise ValueError("PauliZ gate input error!")
+            raise ValueError("PauliZ gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -250,7 +250,7 @@ class rx(Operation):
         if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
-            raise ValueError("Rx gate input error!")
+            raise ValueError("Rx gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -288,7 +288,7 @@ class ry(Operation):
         if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
-            raise ValueError("Ry gate input error!")
+            raise ValueError("Ry gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -326,7 +326,7 @@ class rz(Operation):
         if self.nqubits != -1 and self.wires != -1:
             return self.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
         else:
-            raise ValueError("Rz gate input error!")
+            raise ValueError("Rz gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -375,7 +375,7 @@ class rxx(Operation):
             rst = torch.cos(self.params/2.0)*multi_kron(lst1) - 1j*torch.sin(self.params/2.0)*multi_kron(lst2)
             return rst + 0j
         else:
-            raise ValueError("Rxx gate input error!")
+            raise ValueError("Rxx gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -427,7 +427,7 @@ class ryy(Operation):
             rst = torch.cos(self.params/2.0)*multi_kron(lst1) - 1j*torch.sin(self.params/2.0)*multi_kron(lst2)
             return rst + 0j
         else:
-            raise ValueError("Ryy gate input error!")
+            raise ValueError("Ryy gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -479,7 +479,7 @@ class rzz(Operation):
             rst = torch.cos(self.params/2.0)*multi_kron(lst1) - 1j*torch.sin(self.params/2.0)*multi_kron(lst2)
             return rst + 0j
         else:
-            raise ValueError("Rzz gate input error!")
+            raise ValueError("Rzz gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -519,7 +519,7 @@ class cnot(Operation):
             target = self.wires[1]
             return self.two_qubit_control_gate( sigma_x, self.nqubits, control, target )
         else:
-            raise ValueError("cnot gate input error!")
+            raise ValueError("cnot gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -556,7 +556,7 @@ class cz(Operation):
             target = self.wires[1]
             return self.two_qubit_control_gate( sigma_z, self.nqubits, control, target )
         else:
-            raise ValueError("cz gate input error!")
+            raise ValueError("cz gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -566,6 +566,104 @@ class cz(Operation):
     def params_update(self,params):
         pass
     
+
+
+
+
+
+class cphase(Operation):
+    label = "cphase"
+    num_params = 1
+    num_wires = 2          
+    self_inverse = False
+    
+    def __init__(self, theta, N=-1, wires=-1):#wires以list形式输入
+        theta = theta + torch.tensor(0.0)
+        self.nqubits = N
+        self.wires = wires
+        self.params = theta
+        exp_itheta = torch.cos(theta) + 1j * torch.sin(theta)
+        self.matrix = torch.tensor([[1,0,0,0],\
+                                    [0,1,0,0],\
+                                    [0,0,1,0],\
+                                    [0,0,0,exp_itheta]]) + 0j
+    
+    def U_expand(self):
+        if self.nqubits != -1 and self.wires != -1:
+            exp_itheta = torch.cos(self.params) + 1j * torch.sin(self.params)
+            phase_gate = torch.tensor( [[1,0],[0,exp_itheta]] ) + 0j
+            control = self.wires[0]
+            target = self.wires[1]
+            return self.two_qubit_control_gate( phase_gate, self.nqubits, control, target )
+        else:
+            raise ValueError("cphase gate input error! cannot expand")
+    
+    def info(self):
+        #将门的信息整合后return，用来添加到circuit的gate_lst中
+        info = {'label':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':self.params}
+        return info
+    
+    def params_update(self,params):
+        pass
+
+
+
+
+
+
+class SWAP(Operation):
+    label = "SWAP"
+    num_params = 0
+    num_wires = 2          
+    self_inverse = True
+    matrix = torch.tensor([[1,0,0,0],\
+                           [0,0,1,0],\
+                           [0,1,0,0],\
+                           [0,0,0,1]]) + 0j
+    
+    def __init__(self,N=-1,wires=-1):#wires以list形式输入
+        self.nqubits = N
+        self.wires = wires
+    
+    def U_expand(self):
+        if self.nqubits != -1 and self.wires != -1:
+            qbit1 = self.wires[0]
+            qbit2 = self.wires[1]
+            
+            zero_zero = torch.tensor( [[1,0],[0,0]] ) + 0j
+            one_one = torch.tensor( [[0,0],[0,1]] ) + 0j
+            zero_one = torch.tensor( [[0,1],[0,0]] ) + 0j
+            one_zero = torch.tensor( [[0,0],[1,0]] ) + 0j
+            
+            lst1 = [torch.eye(2,2)] * self.nqubits
+            lst1[qbit1] = zero_zero
+            lst1[qbit2] = zero_zero
+            
+            lst2 = [torch.eye(2,2)] * self.nqubits
+            lst2[qbit1] = one_zero
+            lst2[qbit2] = zero_one
+            
+            lst3 = [torch.eye(2,2)] * self.nqubits
+            lst3[qbit1] = zero_one
+            lst3[qbit2] = one_zero
+            
+            lst4 = [torch.eye(2,2)] * self.nqubits
+            lst4[qbit1] = one_one
+            lst4[qbit2] = one_one
+            
+            return multi_kron(lst1) + multi_kron(lst2) + multi_kron(lst3) + multi_kron(lst4) + 0j
+        else:
+            raise ValueError("SWAP gate input error! cannot expand")
+    
+    def info(self):
+        #将门的信息整合后return，用来添加到circuit的gate_lst中
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':list(self.wires),'params':None}
+        return info
+    
+    def params_update(self,params):
+        pass
+
+
 
 
 
@@ -600,7 +698,7 @@ class toffoli(Operation):
             
             return self.multi_control_gate( sigma_x, self.nqubits, self.control_lst, self.target_lst[0] )
         else:
-            raise ValueError("toffoli gate input error!")
+            raise ValueError("toffoli gate input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -639,7 +737,7 @@ class multi_control_cnot(Operation):
             sigma_x = torch.tensor( [[0,1],[1,0]] ) + 0j
             return self.multi_control_gate( sigma_x, self.nqubits, self.control_lst, self.target_lst[0] )
         else:
-            raise ValueError(self.label+" input error!")
+            raise ValueError(self.label+" input error! cannot expand")
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中

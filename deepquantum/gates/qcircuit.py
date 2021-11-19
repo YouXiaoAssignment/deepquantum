@@ -88,12 +88,18 @@ class Circuit(object):
     def cz(self, wires):
         self.add( cz(self.nqubits, wires) )
     
+    def cphase(self, theta, wires):
+        self.add( cphase(theta, self.nqubits, wires) )
+    
+    def SWAP(self, wires):
+        self.add( SWAP(self.nqubits, wires) )
+    
     def toffoli(self, wires):
         self.add( toffoli(self.nqubits, wires) )
     
     def multi_control_cnot(self, wires):
         self.add( multi_control_cnot(self.nqubits, wires) )
-        
+    #====================================================================    
     def XYZLayer(self, wires, params_lst):
         self.add( XYZLayer(self.nqubits, wires, params_lst) )
     
@@ -122,6 +128,8 @@ class Circuit(object):
 if __name__ == '__main__':
     cir = Circuit(3)
     
+    cir.cphase(1.2, [1,2])
+    
     cir.Hadamard([0,1])
     
     cir.PauliX(0)
@@ -131,6 +139,8 @@ if __name__ == '__main__':
     cir.rx(torch.pi/6.0, 1)
     
     cir.BasicEntangleLayer([0,1,2], torch.rand(9))
+    
+    cir.SWAP([0,2])
     
     for each in cir.gate:
         print(each.info()['label'])

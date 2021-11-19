@@ -95,8 +95,8 @@ class qcir(nn.Module):
         #以3个qubit的线路为例，把3个[batch,1]的矩阵拼接为[batch,3]
         rst = torch.cat( tuple(measure_rst),dim=1 ) 
         
-        #把值域做拉伸，从[-1,1]到[0,1]
-        rst = ( rst + 1 ) * 0.5
+        #把值域做拉伸，从[-1,1]到[-10,10]
+        rst = ( rst + 0 ) * 10
         return rst
         
         # rst_average = rst[:,0]
@@ -134,7 +134,7 @@ class qnet(nn.Module):
         
         cir_out = self.circuit ( pre_batch )
         
-        return cir_out[:,0]
+        return torch.sigmoid( cir_out[:,0] )
         # out = nn.functional.leaky_relu(self.FC1(cir_out))
         # out = nn.functional.leaky_relu(self.FC2(out))
         # out = nn.functional.leaky_relu(self.FC3(out))
