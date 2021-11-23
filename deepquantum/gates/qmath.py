@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from typing import List
+import time
 
 def multi_kron(lst):
     rst = lst[0]
@@ -115,15 +116,17 @@ def ptrace(rhoAB, dimA, dimB):
 
 
 
-def partial_trace(rho,N,trace_lst):
+def partial_trace_old(rho,N,trace_lst):
     '''
     trace_lst里面是想trace掉的qubit的索引号，须从小到大排列
     '''
     #输入合法性检测
-    if abs(torch.trace(rho) - 1) > 1e-6:
+    if abs(torch.trace(rho) - 1) > 1e-4:
         raise ValueError("trace of density matrix must be 1")
     if rho.shape[0] != 2**N:
         raise ValueError('rho dim error')
+    if len(trace_lst)!=0 and max(trace_lst) > N - 1:
+        raise ValueError('element in trace_lst must be less than N-1')
     
     trace_lst.sort()#必须从小到大排列
     rho = rho + 0j
@@ -140,9 +143,63 @@ def partial_trace(rho,N,trace_lst):
     
     new_lst = [ i-1 for i in trace_lst[1:] ] #trace掉一个qubit，他后面的qubit索引号要减1
     
+    return partial_trace_old(rho_nxt,N-1,new_lst) + 0j
+
+
+
+
+
+
+def partial_trace(rho,N,trace_lst):
+    '''
+    trace_lst里面是想trace掉的qubit的索引号，须从小到大排列
+    '''
+    #输入合法性检测
+    if abs(torch.trace(rho) - 1) > 1e-4:
+        raise ValueError("trace of density matrix must be 1")
+    if rho.shape[0] != 2**N:
+        raise ValueError('rho dim error')
+    if len(trace_lst)!=0 and max(trace_lst) > N - 1:
+        raise ValueError('element in trace_lst must be less than N-1')
+    
+    trace_lst.sort()#必须从小到大排列
+    rho = rho + 0j
+    if len(trace_lst) == 0:
+        return rho + 0j
+    
+    i = int(trace_lst[0])
+    index_lst0 = []  #该列表记录当左右乘0态时，哪些行、列要被保留
+    for idx in range(2**i):
+        for idy in range(2**(N-i-1)):
+            index_lst0.append(idx * (2**(N-i)) + idy)
+    index_lst1 = [] #该列表记录当左右乘1态时，哪些行、列要被保留
+    for idx in range(2**i):
+        for idy in range(2**(N-i-1)):
+            index_lst1.append(idx * (2**(N-i)) + idy + 2**(N-i-1))
+    
+    # M0 = torch.empty( 2**(N-1), 2**N ) + 0j
+    # M1 = torch.empty( 2**(N-1), 2**N ) + 0j
+    
+    M0 = rho.index_select( 0, torch.tensor(index_lst0) )
+    M1 = rho.index_select( 0, torch.tensor(index_lst1) )
+    #for row in range(M0.shape[0]):  
+        #M0[row] = rho[index_lst0[row]]
+        #M1[row] = rho[index_lst1[row]]
+    
+    # M00 = torch.empty( 2**(N-1), 2**(N-1) ) + 0j
+    # M11 = torch.empty( 2**(N-1), 2**(N-1) ) + 0j
+    
+    M00 = M0.index_select( 1, torch.tensor(index_lst0) )
+    M11 = M1.index_select( 1, torch.tensor(index_lst1) )
+    # for i in range(M00.shape[1]):
+    #     M00[:,i] = M0[:,index_lst0[i]]
+    #     M11[:,i] = M1[:,index_lst1[i]]
+    
+    rho_nxt = M00 + M11
+
+    new_lst = [ i-1 for i in trace_lst[1:] ] #trace掉一个qubit，他后面的qubit索引号要减1
+    
     return partial_trace(rho_nxt,N-1,new_lst) + 0j
-
-
 
 
 
@@ -166,3 +223,55 @@ def measure(state,M,rho=False,physic=False):
         return torch.trace(state @ M).real 
 
 
+if __name__ == '__main__':
+    
+    N = 10
+    trace_lst = list(range(N-2))
+    #trace_lst = [0,3,5,8]
+    rm = torch.rand(2**N,2**N)
+    rho = (1.0/torch.trace(rm))*rm
+    
+    r1 = partial_trace_old(rho,N,trace_lst)
+    r2 = partial_trace(rho,N,trace_lst)
+    print(r1-r2)
+    t1 = time.time()
+    for i in range(10):
+        r1 = partial_trace_old(rho,N,trace_lst)
+    t2 = time.time()
+    for i in range(10):
+        r2 = partial_trace(rho,N,trace_lst)
+    t3 = time.time()
+    print('old method:',t2 - t1)
+    print('new method:',t3 - t2)
+    print('new/old:',(t3 - t2)/(t2 - t1))
+    #11qubit,13%,12qubit,7%,13qubit,3.5%
+    input('')
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
