@@ -122,7 +122,7 @@ class Circuit(object):
         self.add( ring_of_cnot2(self.nqubits, wires) )
     
     def BasicEntangleLayer(self, wires, params_lst, repeat=1):
-        self.add( BasicEntangleLayer(self.nqubits, wires, params_lst, repeat=1) )
+        self.add( BasicEntangleLayer(self.nqubits, wires, params_lst, repeat) )
     
     
 if __name__ == '__main__':
