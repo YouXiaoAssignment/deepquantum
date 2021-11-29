@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov  9 09:11:13 2021
+Created on Mon Nov 29 09:47:57 2021
 
 @author: shish
+用于测试模型是否可以被转成torchscript中间层的.pt文件
+1-torchscript对多重继承不支持，父类的静态方法，子类无法用self.的方式调用，必须用父类名.的方式调用
+2-torchscript可能对函数的输入变量类型推断错误，报错之处要手动指定python数据类型
+3-torchscript不支持类的属性，只支持实例属性
+4-列表中的元素必须类型一致
+5-torchscript只支持python的math库，其他库不支持
+6-要使用脚本模式，请确保从torch.jit.ScriptModule基类（而不是torch.nn.Module）继承
 """
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import random
 import math
-#import onnx
+
 
 
 from deepquantum.gates.qmath import multi_kron, measure, IsUnitary, IsNormalized
@@ -26,13 +32,13 @@ from deepquantum.layers.qlayers import YZYLayer, ZXLayer,ring_of_cnot, ring_of_c
 
 
 #==============================================================================
-class qcir(nn.Module):
+class qcir(torch.jit.ScriptModule):
     def __init__(self,nqubits):
         super().__init__()
         #属性：量子线路qubit数目，随机初始化的线路参数，测量力学量列表
         self.nqubits = nqubits
         self.weight = \
-            nn.Parameter( nn.init.uniform_(torch.empty(15*self.nqubits), a=0.0, b=2*torch.pi) )
+            nn.Parameter( nn.init.uniform_(torch.empty(6*self.nqubits), a=0.0, b=2*torch.pi) )
         
         self.M_lst = self.Zmeasure()
 
@@ -65,19 +71,19 @@ class qcir(nn.Module):
         
         #variation变分部分
         c1.add( BasicEntangleLayer(self.nqubits, wires_lst, self.weight[0*self.nqubits:3*self.nqubits]) )
-        c1.add( BasicEntangleLayer(self.nqubits, wires_lst, self.weight[3*self.nqubits:6*self.nqubits]) )
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[6*self.nqubits:9*self.nqubits]) )
-        c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
-        c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[9*self.nqubits:12*self.nqubits]) )
-        c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
-        c1.YZYLayer( wires_lst, self.weight[12*self.nqubits:15*self.nqubits] ) 
+        # c1.add( BasicEntangleLayer(self.nqubits, wires_lst, self.weight[3*self.nqubits:6*self.nqubits]) )
+        # c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[6*self.nqubits:9*self.nqubits]) )
+        # c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
+        # c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[9*self.nqubits:12*self.nqubits]) )
+        # c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
+        c1.YZYLayer( wires_lst, self.weight[3*self.nqubits:6*self.nqubits] ) 
         
         U = c1.U()
 
         #最终返回线路变分部分的 演化酉矩阵 和 编码后的态矢
-        return U + 0j, phi_encoded_batch.permute(1,0) 
+        return U + 0j, phi_encoded_batch.permute(1,0)
     
-    
+    #@torch.jit.script_method
     def forward(self,input_lst_batch):
         #计算编码后的态和变分线路的演化矩阵
         U, phi_encoded_batch = self.build_circuit(input_lst_batch)
@@ -106,30 +112,31 @@ class qcir(nn.Module):
         
         
         
-
-class qnet(nn.Module):
+#torch.jit.ScriptModule也是继承自nn.Module
+#若要转成torchscript中间层所有相关模块必须继承自torch.jit.ScriptModule
+class qnet(torch.jit.ScriptModule):
     
     def __init__(self,nqubits):
         super().__init__()
         
-        self.nqubits = nqubits
-        self.circuit = qcir(self.nqubits)
+        #self.nqubits = nqubits
+        self.circuit = qcir(nqubits)
         self.FC1 = nn.Linear(len(self.circuit.M_lst),8)
+        #self.FC1 = nn.Linear(1,8)
         self.FC2 = nn.Linear(8,8)
         self.FC3 = nn.Linear(8,1)
       
    
-    
+    #@torch.jit.script_method
     def forward(self,x_batch):
         
-        #输入数据的非线性预处理
-        #pre_batch = torch.sqrt( 0.5*(1 + torch.sigmoid(x_batch)) )
-        pre_batch = x_batch
+        pre_batch = x_batch + torch.tensor(0.0)
         
         cir_out = self.circuit ( pre_batch )
         
         #return cir_out[:,0]
         out = nn.functional.leaky_relu(self.FC1(cir_out))
+        #out = nn.functional.leaky_relu(self.FC1(pre_batch))
         out = nn.functional.leaky_relu(self.FC2(out))
         out = nn.functional.leaky_relu(self.FC3(out))
         return out
@@ -147,33 +154,42 @@ def foo(x1):
 
 if __name__ == "__main__":
     
-    N = 3
-    num_examples = 1024
-    num_inputs = 1
-    num_outputs = 1
+    # N = 2
+    # num_examples = 512
+    # num_inputs = 1
+    # num_outputs = 1
     
-    features = torch.empty( num_examples,num_inputs )
-    labels = torch.empty( num_examples,num_outputs )
-    for i in range(num_examples):
-        features[i] = torch.rand(num_inputs)*2*math.pi
+    # features = torch.empty( num_examples,num_inputs )
+    # labels = torch.empty( num_examples,num_outputs )
+    # for i in range(num_examples):
+    #     features[i] = torch.rand(num_inputs)*2*math.pi
 
-    for i in range(num_examples):
-        labels[i] = foo( features[i][0] ) + 1e-3*random.random()
+    # for i in range(num_examples):
+    #     labels[i] = foo( features[i][0] ) + 1e-3*random.random()
     
-    def data_iter(batch_size, features, labels):
-        #输入batch_size，输入训练集地数据features+标签labels
-        num_examples = len(features)
-        indices = list(range(num_examples))
-        random.shuffle(indices) #把indices列表顺序随机打乱
-        for i in range(0,num_examples,batch_size):
-            #每次取batch_size个训练样本,j代表索引
-            j = torch.LongTensor( indices[i:min(i+batch_size,num_examples)] ) 
-            #print(features.index_select(0,j), labels.index_select(0,j))
-            yield features.index_select(0,j), labels.index_select(0,j)
-            #把张量沿着0维，只保留取出索引号对应的元素
+    # def data_iter(batch_size, features, labels):
+    #     #输入batch_size，输入训练集地数据features+标签labels
+    #     num_examples = len(features)
+    #     indices = list(range(num_examples))
+    #     random.shuffle(indices) #把indices列表顺序随机打乱
+    #     for i in range(0,num_examples,batch_size):
+    #         #每次取batch_size个训练样本,j代表索引
+    #         j = torch.LongTensor( indices[i:min(i+batch_size,num_examples)] ) 
+    #         #print(features.index_select(0,j), labels.index_select(0,j))
+    #         yield features.index_select(0,j), labels.index_select(0,j)
+    #         #把张量沿着0维，只保留取出索引号对应的元素
     
 #=============================================================================
-    
+    net2 = qnet(2)
+    print('推断结果：',net2( torch.tensor([[2.5]]) ))
+    print('start producing torchscript file')
+    scripted_modeule = torch.jit.script(qnet(2))
+    torch.jit.save(scripted_modeule, 'test_torchscript.pt')
+    print('completed!')
+    #onnx_modeule = qnet(2)
+    #onnx.checker.check_model(onnx_modeule)
+    #onnx.save(onnx_modeule, 'D:/git')
+    '''
     net1 = qnet(N)      #构建训练模型
     loss = nn.MSELoss() #平方损失函数
     
@@ -193,7 +209,7 @@ if __name__ == "__main__":
     
     #torch.cuda.set_device(0)
     num_epochs = 30;
-    batch_size = 128;
+    batch_size = 64;
     
     #记录loss随着epoch的变化，用于后续绘图
     epoch_lst = [i+1 for i in range(num_epochs)]
@@ -235,8 +251,8 @@ if __name__ == "__main__":
     plt.subplot(122)
     plt.plot(epoch_lst,loss_lst,'r^--',linewidth=1, markersize=1.5)
     plt.show()
-    
-    input("")
+    '''
+    input("END")
     
 
 

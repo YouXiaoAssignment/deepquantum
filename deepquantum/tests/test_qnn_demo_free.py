@@ -199,7 +199,7 @@ if __name__ == "__main__":
     
     
     #torch.cuda.set_device(0)
-    num_epochs = 30;
+    num_epochs = 5;
     batch_size = 128;
     
     #记录loss随着epoch的变化，用于后续绘图

@@ -9,13 +9,15 @@ from deepquantum.gates import multi_kron
 from deepquantum.gates.qoperator import Hadamard,rx,ry,rz,rxx,ryy,rzz,cnot,cz,Operation
 
 class XYZLayer(Operation):
-    label = "XYZLayer"
+    #label = "XYZLayer"
     
     def __init__(self,N,wires,params_lst):
         if 3*len(wires) != len(params_lst):
             raise ValueError("XYZLayer: number of parameters not match")
         if len(wires) > N:
             raise ValueError("XYZLayer: number of wires must less than N")
+        self.label = "XYZLayer"
+        
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
@@ -48,13 +50,15 @@ class XYZLayer(Operation):
 
 
 class YZYLayer(Operation):
-    label = "YZYLayer"
+    # label = "YZYLayer"
     
     def __init__(self,N,wires,params_lst):
         if 3*len(wires) != len(params_lst):
             raise ValueError("YZYLayer: number of parameters not match")
         if len(wires) > N:
             raise ValueError("YZYLayer: number of wires must less than N")
+        self.label = "YZYLayer"
+        
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
@@ -89,13 +93,15 @@ class YZYLayer(Operation):
 
 
 class XZXLayer(Operation):
-    label = "XZXLayer"
+    # label = "XZXLayer"
     
     def __init__(self,N,wires,params_lst):
         if 3*len(wires) != len(params_lst):
             raise ValueError("XZXLayer: number of parameters not match")
         if len(wires) > N:
             raise ValueError("XZXLayer: number of wires must less than N")
+        self.label = "XZXLayer"
+        
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
@@ -129,13 +135,15 @@ class XZXLayer(Operation):
 
 
 class XZLayer(Operation):
-    label = "XZLayer"
+    # label = "XZLayer"
     
     def __init__(self,N,wires,params_lst):
         if 2*len(wires) != len(params_lst):
             raise ValueError("XZLayer: number of parameters not match")
         if len(wires) > N:
             raise ValueError("XZLayer: number of wires must less than N")
+        self.label = "XZLayer"
+        
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
@@ -171,13 +179,15 @@ class XZLayer(Operation):
 
 
 class ZXLayer(Operation):
-    label = "ZXLayer"
+    # label = "ZXLayer"
     
     def __init__(self,N,wires,params_lst):
         if 2*len(wires) != len(params_lst):
             raise ValueError("ZXLayer: number of parameters not match")
         if len(wires) > N:
             raise ValueError("ZXLayer: number of wires must less than N")
+        self.label = "ZXLayer"
+        
         self.nqubits = N
         self.wires = wires
         self.params = params_lst
@@ -207,11 +217,13 @@ class ZXLayer(Operation):
 
 
 class HLayer(Operation):
-    label = "HadamardLayer"
+    # label = "HadamardLayer"
     
     def __init__(self,N,wires):
         if len(wires) > N:
             raise ValueError("HadamardLayer: number of wires must less than N")
+        
+        self.label = "HadamardLayer"
         
         self.nqubits = N
         self.wires = wires
@@ -222,7 +234,7 @@ class HLayer(Operation):
         lst1 = [torch.eye(2,2)]*self.nqubits
         for i,qbit in enumerate( self.wires ):
 
-            lst1[qbit] = Hadamard.matrix
+            lst1[qbit] = Hadamard().matrix
         
         return multi_kron(lst1) + 0j
         
@@ -243,7 +255,7 @@ class HLayer(Operation):
 
 
 class ring_of_cnot(Operation):
-    label = "ring_of_cnot_Layer"
+    # label = "ring_of_cnot_Layer"
     
     def __init__(self,N,wires):
         
@@ -251,6 +263,8 @@ class ring_of_cnot(Operation):
             raise ValueError("ring_of_cnotLayer: number of wires must <= N")
         if len(wires) < 2:
             raise ValueError("ring_of_cnotLayer: number of wires must >= 2")
+        self.label = "ring_of_cnot_Layer"
+        
         self.nqubits = N
         self.wires = wires
         self.num_params = 0
@@ -288,7 +302,7 @@ class ring_of_cnot(Operation):
 
 
 class ring_of_cnot2(Operation):
-    label = "ring_of_cnot2_Layer"
+    # label = "ring_of_cnot2_Layer"
     
     def __init__(self,N,wires):
         
@@ -296,6 +310,8 @@ class ring_of_cnot2(Operation):
             raise ValueError("ring_of_cnot2Layer: number of wires must <= N")
         if len(wires) < 2:
             raise ValueError("ring_of_cnot2Layer: number of wires must >= 2")
+        self.label = "ring_of_cnot2_Layer"
+        
         self.nqubits = N
         self.wires = wires
         self.num_params = 0
@@ -337,7 +353,7 @@ class ring_of_cnot2(Operation):
 
 
 class BasicEntangleLayer(Operation):
-    label = "BasicEntangleLayer"
+    # label = "BasicEntangleLayer"
     
     def __init__(self, N, wires, params_lst, repeat=1):
         
@@ -347,6 +363,10 @@ class BasicEntangleLayer(Operation):
             raise ValueError("BasicEntangleLayer: number of wires must <= N")
         if len(wires) < 2:
             raise ValueError("BasicEntangleLayer: number of wires must >= 2")
+        if repeat < 1:
+            raise ValueError("BasicEntangleLayer: number of repeat must >= 1")
+        self.label = "BasicEntangleLayer"
+        
         self.nqubits = N
         self.wires = wires
         self.num_params = len(params_lst)
@@ -361,8 +381,10 @@ class BasicEntangleLayer(Operation):
         
     def U_expand(self):
         rst = torch.eye(2**self.nqubits) + 0j
+        cnot_ring = self.part2_lst[0].U_expand()
         for i in range(self.repeat):
-            rst = self.part2_lst[i].U_expand() @ self.part1_lst[i].U_expand() @ rst
+            #rst = self.part2_lst[i].U_expand() @ self.part1_lst[i].U_expand() @ rst
+            rst = cnot_ring @ self.part1_lst[i].U_expand() @ rst
         return rst
         
     def info(self):
