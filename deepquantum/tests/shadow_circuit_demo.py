@@ -274,7 +274,7 @@ if __name__ == "__main__":
     #40.7%，30epoch，512example，32batch，36pqc参数，lr=0.2
     #45.1%，100epoch，512example，32batch，36pqc参数，lr=0.2
     #36.8%:29.2%
-    num_examples = 16
+    num_examples = 512
     num_inputs = 784
     num_outputs = 10
     

@@ -7,6 +7,7 @@ Created on Mon Nov  8 09:06:10 2021
 import torch
 from deepquantum.gates import multi_kron
 from deepquantum.gates.qoperator import Hadamard,rx,ry,rz,rxx,ryy,rzz,cnot,cz,Operation
+import time
 
 class XYZLayer(Operation):
     #label = "XYZLayer"
@@ -268,17 +269,34 @@ class ring_of_cnot(Operation):
         self.nqubits = N
         self.wires = wires
         self.num_params = 0
-        
+    
+    def _gate_fusion_U_expand(self,N):
+        if N < 3:
+            raise ValueError('ring of cnot : gate_fusion error! N must be >= 3')
+        I = torch.eye(2,2) + 0j
+        rst = cnot( 2,[0,1] ).U_expand()
+        for i in range( 1, N ):
+            cur_M = cnot( min(2+i,N),[i, (i+1)%N] ).U_expand()
+            if i == N-1:
+                rst = cur_M @ rst
+            else:
+                rst = cur_M @ torch.kron(rst,I)
+        return rst
         
     def U_expand(self):
         L = len(self.wires)
         if L == 2:
             return cnot( self.nqubits,[ self.wires[0],self.wires[1] ]).U_expand()
-    
-        I = torch.eye(2**self.nqubits,2**self.nqubits) + 0j
+        
+        if self.wires == list( range(self.nqubits) ):
+            return self._gate_fusion_U_expand(self.nqubits)
+        
+        #I = torch.eye(2**self.nqubits,2**self.nqubits) + 0j
+        rst = torch.eye(2**self.nqubits,2**self.nqubits) + 0j
         for i,qbit in enumerate( self.wires ):
             
-            rst = cnot(self.nqubits,[ self.wires[i],self.wires[(i+1)%L] ]).U_expand() @ I
+            #rst = cnot(self.nqubits,[ self.wires[i],self.wires[(i+1)%L] ]).U_expand() @ I
+            rst = cnot(self.nqubits,[ self.wires[i],self.wires[(i+1)%L] ]).U_expand() @ rst
 
         return rst
         
@@ -315,17 +333,35 @@ class ring_of_cnot2(Operation):
         self.nqubits = N
         self.wires = wires
         self.num_params = 0
-        
-        
+    
+    
+    def _gate_fusion_U_expand(self,N):
+        if N < 3:
+            raise ValueError('ring of cnot : gate_fusion error! N must be >= 3')
+        I = torch.eye(2,2) + 0j
+        rst = cnot( 3,[0,2] ).U_expand()
+        for i in range( 1, N ):
+            cur_M = cnot( min(3+i,N),[i, (i+2)%N] ).U_expand()
+            if i == N-2 or i == N-1:
+                rst = cur_M @ rst
+            else:
+                rst = cur_M @ torch.kron(rst,I)
+        return rst    
+
+    
     def U_expand(self):
         L = len(self.wires)
         if L == 2:
             return cnot( self.nqubits,[ self.wires[0],self.wires[1] ]).U_expand()
-    
-        I = torch.eye(2**self.nqubits,2**self.nqubits) + 0j
+        
+        if self.wires == list( range(self.nqubits) ):
+            return self._gate_fusion_U_expand(self.nqubits)
+        
+        #I = torch.eye(2**self.nqubits,2**self.nqubits) + 0j
+        rst = torch.eye(2**self.nqubits,2**self.nqubits) + 0j
         for i,qbit in enumerate( self.wires ):
             
-            rst = cnot(self.nqubits,[ self.wires[i],self.wires[(i+2)%L] ]).U_expand() @ I
+            rst = cnot(self.nqubits,[ self.wires[i],self.wires[(i+2)%L] ]).U_expand() @ rst
 
         return rst
         
@@ -415,10 +451,26 @@ class BasicEntangleLayer(Operation):
 
 if __name__ == '__main__':
     print('start')
-    N = 2
-    p = torch.rand(3*N)
-    a = ring_of_cnot(N,list(range(N)))
-    print(a.label)
-    print(a.U_expand())
-    print(a.info())
+    N = 10
+    wires = list(range(N))
+    roc = ring_of_cnot2(N,wires)
+    
+    t1 = time.time()
+    for i in range(10):
+        r1 = roc.U_expand()
+    t2 = time.time()
+    for i in range(10):
+        r2 = roc._gate_fusion_U_expand(roc.nqubits)
+    t3 = time.time()
+    print('r1-r2:',r1-r2)
+    #print('r2:',r2)
+    print('old:',t2-t1)
+    print('new:',t3-t2)
+    print('耗时比：',(t3-t2)/(t2-t1))
+    # N = 2
+    # p = torch.rand(3*N)
+    # a = ring_of_cnot(N,list(range(N)))
+    # print(a.label)
+    # print(a.U_expand())
+    # print(a.info())
     input('')
