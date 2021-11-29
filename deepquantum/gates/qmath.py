@@ -5,7 +5,8 @@ import torch.nn.functional as F
 from typing import List
 import time
 
-def multi_kron(lst):
+def multi_kron(lst:List[torch.Tensor]):
+    #为避免torchscript类型推断错误，需要特别指定输入数据类型
     rst = lst[0]
     for i in range( 1,len(lst) ):
         rst = torch.kron(rst, lst[i])
@@ -16,6 +17,8 @@ def dag(x):
     """
     compute conjugate transpose of input matrix
     """
+    if len(x.shape) != 2:  # 验证是否为矩阵
+        raise ValueError("dag funciton needs matrix inputs!")
     x_conj = torch.conj(x)
     x_dag = x_conj.permute(1, 0)
     return x_dag
@@ -27,7 +30,6 @@ def IsUnitary(in_matrix):
     '''
     if (in_matrix.shape)[0] != (in_matrix.shape)[1]:  # 验证是否为方阵
         raise ValueError("not square matrix!")
-        return False
 
     n = in_matrix.shape[0]  # 行数
 
@@ -36,8 +38,8 @@ def IsUnitary(in_matrix):
         for j in range(n):
             summ += (torch.abs(in_matrix[i][j])) ** 2
         if torch.abs(summ - 1) > 1e-6:
-            print("not unitary! not normalized")
-            raise ValueError("not unitary matrix! not normalized")
+            # print("not unitary! not normalized")
+            # raise ValueError("not unitary matrix! not normalized")
             return False
 
     for i in range(n - 1):  # 行之间是否正交
@@ -46,8 +48,8 @@ def IsUnitary(in_matrix):
             for j in range(n):
                 summ += in_matrix[i][j] * (in_matrix[k][j]).conj()
             if torch.abs(summ) > 1e-6:
-                print("not unitary! not orthogonal")
-                raise ValueError("not unitary matrix! not orthogonal")
+                # print("not unitary! not orthogonal")
+                # raise ValueError("not unitary matrix! not orthogonal")
                 return False
 
     return True
@@ -58,7 +60,7 @@ def IsNormalized(vector):
     '''
     判断一个矢量是否归一
     '''
-    if len(vector.shape) != 1:  # 验证是否为方阵
+    if len(vector.shape) != 1:  # 验证是否为矢量
         raise ValueError("not vector!")
 
     n = vector.shape[0]  # 向量元素数

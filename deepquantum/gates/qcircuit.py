@@ -6,9 +6,12 @@ Created on Mon Nov  8 13:16:17 2021
 """
 import torch
 from collections.abc import Iterable
-from deepquantum.layers.qlayers import *
-from deepquantum.gates.qoperator import * 
-from deepquantum.gates.qmath import multi_kron, measure, IsUnitary
+from deepquantum.layers.qlayers import HLayer,XYZLayer,YZYLayer,XZXLayer,XZLayer,ZXLayer,\
+    ring_of_cnot,ring_of_cnot2,BasicEntangleLayer
+from deepquantum.gates.qoperator import Hadamard,PauliX,PauliY,PauliZ,rx,ry,rz,\
+    rxx,ryy,rzz,cnot,cz,cphase,SWAP,toffoli,multi_control_cnot
+    
+#from deepquantum.gates.qmath import multi_kron
 
 
 class Circuit(object):
