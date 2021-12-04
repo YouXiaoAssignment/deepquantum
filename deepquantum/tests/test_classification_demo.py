@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import random
-import math
+import time
 
 
 from deepquantum.gates.qmath import multi_kron, measure, IsUnitary, IsNormalized
@@ -62,7 +62,7 @@ class qcir(nn.Module):
             e2 = PauliEncoding(self.nqubits, inputs, wires_lst,pauli='Z')
             E1 = e1.U_expand() #编码矩阵
             E2 = e2.U_expand()
-            phi_encoded_batch[i] = E2 @ E1 @ c1.state_init #矩阵与列向量相乘
+            phi_encoded_batch[i] = E2 @ E1 @ c1.state_init() #矩阵与列向量相乘
         
         #variation变分部分
         repeat = 6
@@ -156,7 +156,7 @@ def foo(x1,x2):
 
 if __name__ == "__main__":
     
-    N = 2    #量子线路的qubit总数
+    N = 4    #量子线路的qubit总数
     num_examples = 2048
     num_inputs = 2
     num_outputs = 1
@@ -196,7 +196,7 @@ if __name__ == "__main__":
     
     
     #torch.cuda.set_device(0)
-    num_epochs = 30;
+    num_epochs = 10;
     batch_size = 1024;
     
     #记录loss随着epoch的变化，用于后续绘图
@@ -204,6 +204,7 @@ if __name__ == "__main__":
     loss_lst = []
     
     for epoch in range(1,num_epochs+1):
+        t1 = time.time()
         for x,y in data_iter(batch_size,features,labels):
             
             x.requires_grad_(True)
@@ -217,10 +218,10 @@ if __name__ == "__main__":
             optimizer.step()
             
         #lr_scheduler.step()
-        
+        t2 = time.time()
         loss_lst.append(l.item())
         print("epoch:%d, loss:%f" % (epoch,l.item()),\
-              ';current lr:', optimizer.state_dict()["param_groups"][0]["lr"])
+              ';current lr:', optimizer.state_dict()["param_groups"][0]["lr"],'  耗时：',t2-t1)
     
     
     
@@ -236,7 +237,7 @@ if __name__ == "__main__":
     
     plt.subplot(132)
     y_prediction = [float(each) for each in net1( features[:num_examples,:] ).squeeze() ]
-    color_pred_lst = ['m' if label>0.5 else 'g' for label in y_prediction]
+    color_pred_lst = ['m' if label>0.5 else 'black' for label in y_prediction]
     plt.scatter(x1_lst, x2_lst, s=1, c=color_pred_lst)
     
     plt.subplot(133)

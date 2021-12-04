@@ -11,20 +11,27 @@ from deepquantum.layers.qlayers import HLayer,XYZLayer,YZYLayer,XZXLayer,XZLayer
 from deepquantum.gates.qoperator import Hadamard,PauliX,PauliY,PauliZ,rx,ry,rz,\
     rxx,ryy,rzz,cnot,cz,cphase,SWAP,toffoli,multi_control_cnot
     
-#from deepquantum.gates.qmath import multi_kron
+from deepquantum.gates.qmath import multi_kron
+
+from typing import List
 
 
 class Circuit(object):
     def __init__(self, N):
         self.nqubits = N  # 总QuBit的个数
         self.gate = []  # 顺序添加各类门
-        self._U = torch.eye(2**self.nqubits) + 0j     # 线路酉矩阵
+        self._U = torch.tensor(1.0) + 0j     # 线路酉矩阵，初始为1
         
-        #线路的初始态，默认全为|0>态
-        self.state_init = torch.zeros(2**self.nqubits)
-        self.state_init[0] = 1
-        self.state_init = self.state_init + 0j
         
+        
+    def state_init(self):
+        '''
+        线路的初始态，默认全为|0>态,避免内存浪费，需要时再调用
+        '''
+        state_init = torch.zeros(2**self.nqubits)
+        state_init[0] = 1.0
+        state_init = state_init + 0j
+        return state_init
 
     def add(self, gate):
         self.gate.append(gate)
@@ -43,15 +50,36 @@ class Circuit(object):
        
         return U_overall
     
+    def TN_evolution(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+        if len(MPS) != self.nqubits:
+            raise ValueError('TN_evolution:MPS tensor list must have N elements!')
+        for oper in self.gate:
+            if oper.supportTN == True:
+                MPS = oper.TN_operation(MPS)
+            else:
+                raise ValueError('TN_evolution:some part of circuit do not support Tensor Network')
+        return MPS
+    
+    
     def draw(self):
-        for each in self.gate:
-            pass
         pass
     
     def clear(self):
         self.gate = []
-        self._U = torch.eye(2**self.nqubits) + 0j
+        self._U = torch.tensor(1.0) + 0j
+
         
+
+
+
+
+
+
+
+
+
+
+
     def Hadamard(self, wires):
         if isinstance(wires, Iterable):
             self.add( HLayer(self.nqubits, wires) )
@@ -149,7 +177,8 @@ if __name__ == '__main__':
         print(each.info()['label'])
     
     print('\n',cir.U())
-    
+    lst1 = [torch.eye(2)]*3
+    multi_kron(lst1)
     input('')
         
         

@@ -137,10 +137,8 @@ class qcircuit(torch.jit.ScriptModule):
         self.weight = \
             nn.Parameter( nn.init.uniform_(torch.empty(15*self.n_sqc), a=0.0, b=2*torch.pi) )
             
-        
         self.device = device
-        
-        self.M = dp.multi_kron([dp.PauliX().matrix]*self.n_sqc) 
+        self.M = dp.multi_kron([dp.PauliX().matrix]*self.n_sqc)
         pass
     
     def normlization(self,vector_batch):
@@ -189,35 +187,35 @@ class qcircuit(torch.jit.ScriptModule):
         state_batch_l = state_batch.conj()
         state_batch_r = state_batch.permute(0,2,1)
         #print(state_batch_l.shape,state_batch_r.shape)
-        
+        #U_lst = torch.zeros(self.nqubits - self.n_sqc + 1,1,2**self.nqubits,2**self.nqubits) + 0j   
         U = self.build_circuit()
         temp = dp.dag(U) @ self.M @ U
-        for start_qbit in range(0,self.nqubits - self.n_sqc + 1):
-            
+        shadows = self.nqubits - self.n_sqc + 1
+        Hdim = 2**self.nqubits
+        for start_qbit in range(0,shadows):
             temp_lst = [torch.eye(2**start_qbit).to(self.device)+0j] \
-                + [temp] \
-                + [torch.eye(2**( self.nqubits - self.n_sqc - start_qbit )).to(self.device)+0j]
-            
-            cur_M = dp.multi_kron(temp_lst).view(1,1,2**self.nqubits,2**self.nqubits)
+                     + [temp] \
+                     + [torch.eye(2**( self.nqubits - self.n_sqc - start_qbit )).to(self.device)+0j]
+            cur_M = dp.multi_kron(temp_lst).view(1,Hdim,Hdim)
             if start_qbit == 0:
                 U_lst = cur_M
             else:
                 U_lst = torch.cat( (U_lst,cur_M) , dim=0)
             #print(U_lst.shape)
-        
-        rst = state_batch_l @ U_lst @ state_batch_r
+        rst = state_batch_l @ U_lst.view(shadows,1,Hdim,Hdim) @ state_batch_r
         rst = rst.real
-        rst = rst.squeeze()
-        if len(rst.shape) == 1:
-            rst = rst.unsqueeze(1)
+        rst = rst.squeeze(dim=-1).squeeze(dim=-1)
+        
+        # if len(rst.shape) == 1:
+        #     rst = rst.unsqueeze(1)
+        
         return rst.permute(1,0)
         
     
     def forward(self,vector_batch):
         
         state_batch = self.amplitude_encoding( self.normlization(vector_batch) ) 
-        
-       
+
         return self.cal_o_lst( state_batch )
         
                 
@@ -274,7 +272,7 @@ if __name__ == "__main__":
     #40.7%，30epoch，512example，32batch，36pqc参数，lr=0.2
     #45.1%，100epoch，512example，32batch，36pqc参数，lr=0.2
     #36.8%:29.2%
-    num_examples = 512
+    num_examples = 64
     num_inputs = 784
     num_outputs = 10
     
@@ -361,9 +359,9 @@ if __name__ == "__main__":
             optimizer.step()
             
         #lr_scheduler.step()
-        
-        loss_lst.append(l.item())
         t2 = time.time()
+        loss_lst.append(l.item())
+        
         print("epoch:%d, loss:%f" % (epoch,l.item()),\
               ';current lr:', optimizer.state_dict()["param_groups"][0]["lr"],'time:',t2-t1)
     #torch.save(net1,'shadow_circuit_module.pth')

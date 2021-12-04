@@ -225,6 +225,10 @@ def measure(state,M,rho=False,physic=False):
         return torch.trace(state @ M).real 
 
 
+
+
+
+
 if __name__ == '__main__':
     
     N = 10

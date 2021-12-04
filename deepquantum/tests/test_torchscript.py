@@ -24,7 +24,7 @@ from deepquantum.gates.qmath import multi_kron, measure, IsUnitary, IsNormalized
 import deepquantum.gates.qoperator as op
 from deepquantum.gates.qcircuit import Circuit
 from deepquantum.embeddings.qembedding import PauliEncoding
-from deepquantum.layers.qlayers import YZYLayer, ZXLayer,ring_of_cnot, ring_of_cnot2, BasicEntangleLayer
+from deepquantum.layers.qlayers import XYZLayer, YZYLayer, ZXLayer,ring_of_cnot, ring_of_cnot2, BasicEntangleLayer
 
 
 
@@ -38,7 +38,7 @@ class qcir(torch.jit.ScriptModule):
         #属性：量子线路qubit数目，随机初始化的线路参数，测量力学量列表
         self.nqubits = nqubits
         self.weight = \
-            nn.Parameter( nn.init.uniform_(torch.empty(6*self.nqubits), a=0.0, b=2*torch.pi) )
+            nn.Parameter( nn.init.uniform_(torch.empty(11*self.nqubits), a=0.0, b=2*torch.pi) )
         
         self.M_lst = self.Zmeasure()
 
@@ -67,26 +67,38 @@ class qcir(torch.jit.ScriptModule):
         for i, inputs in enumerate(input_lst_batch):
             e = PauliEncoding(self.nqubits, inputs, wires_lst,pauli='Y')
             E = e.U_expand() #编码矩阵
-            phi_encoded_batch[i] = E @ c1.state_init #矩阵与列向量相乘
+            phi_encoded_batch[i] = E @ c1.state_init() #矩阵与列向量相乘
         
         #variation变分部分
+        c1.PauliX(0)
+        c1.PauliY(1)
+        c1.PauliZ(0)
+        c1.Hadamard(1)
+        c1.rxx(0.3,[1,0])
+        c1.ryy(0.2,[1,2])
+        c1.rzz(0.4,[2,0])
+        c1.SWAP([0,2])
         c1.add( BasicEntangleLayer(self.nqubits, wires_lst, self.weight[0*self.nqubits:3*self.nqubits]) )
         # c1.add( BasicEntangleLayer(self.nqubits, wires_lst, self.weight[3*self.nqubits:6*self.nqubits]) )
-        # c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[6*self.nqubits:9*self.nqubits]) )
-        # c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
+        c1.add( XYZLayer(self.nqubits, wires_lst, self.weight[6*self.nqubits:9*self.nqubits]) )
+        c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
         # c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[9*self.nqubits:12*self.nqubits]) )
         # c1.add( ring_of_cnot2(self.nqubits, wires_lst) )
-        c1.YZYLayer( wires_lst, self.weight[3*self.nqubits:6*self.nqubits] ) 
+        c1.ZXLayer( wires_lst, self.weight[9*self.nqubits:11*self.nqubits] ) 
+        c1.ring_of_cnot(wires_lst)
+        c1.toffoli([2,1,0])
         
-        U = c1.U()
-
+        #U = c1.U()
+        print([each.info()['label'] for each in c1.gate ])
         #最终返回线路变分部分的 演化酉矩阵 和 编码后的态矢
-        return U + 0j, phi_encoded_batch.permute(1,0)
+        #return U + 0j, phi_encoded_batch.permute(1,0)
+        return c1, phi_encoded_batch.permute(1,0)
     
     #@torch.jit.script_method
     def forward(self,input_lst_batch):
         #计算编码后的态和变分线路的演化矩阵
-        U, phi_encoded_batch = self.build_circuit(input_lst_batch)
+        c1, phi_encoded_batch = self.build_circuit(input_lst_batch)
+        U = c1.U()
         #计算线路演化终态
         phi_out = U @ phi_encoded_batch # 8 X batch_size
         
@@ -180,10 +192,10 @@ if __name__ == "__main__":
     #         #把张量沿着0维，只保留取出索引号对应的元素
     
 #=============================================================================
-    net2 = qnet(2)
+    net2 = qnet(4)
     print('推断结果：',net2( torch.tensor([[2.5]]) ))
     print('start producing torchscript file')
-    scripted_modeule = torch.jit.script(qnet(2))
+    scripted_modeule = torch.jit.script(qnet(4))
     torch.jit.save(scripted_modeule, 'test_torchscript.pt')
     print('completed!')
     #onnx_modeule = qnet(2)
