@@ -63,7 +63,7 @@ class qcir(nn.Module):
         for i, inputs in enumerate(input_lst_batch):
             e = PauliEncoding(self.nqubits, inputs, wires_lst,pauli='Y')
             E = e.U_expand() #编码矩阵
-            phi_encoded_batch[i] = E @ c1.state_init #矩阵与列向量相乘
+            phi_encoded_batch[i] = E @ c1.state_init() #矩阵与列向量相乘
         
         #variation变分部分
         c1.add( YZYLayer(self.nqubits, wires_lst, self.weight[0:3*self.nqubits]) )

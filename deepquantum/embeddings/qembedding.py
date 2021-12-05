@@ -5,6 +5,8 @@ import torch.nn.functional as F
 from deepquantum.gates import Circuit as cir
 from deepquantum.gates.qmath import multi_kron, dag
 from deepquantum.gates.qoperator import rx, ry, rz, Operation
+from deepquantum.layers.qlayers import SingleGateLayer
+from typing import List
 
 # ===============================encoding layer=================================
 
@@ -40,7 +42,7 @@ from deepquantum.gates.qoperator import rx, ry, rz, Operation
 #     return state
 
 
-class PauliEncoding(Operation):
+class PauliEncoding(SingleGateLayer):
     def __init__(self, N, input_lst, wires, pauli='X'):
         
         if N < len(input_lst):
@@ -50,41 +52,38 @@ class PauliEncoding(Operation):
         self.pauli = pauli
         self.wires = wires
         
-        self.state0 = torch.zeros(2**self.nqubits)
-        self.state0[0] = 1
-        self.state0 = self.state0 + 0j
+        # self.state0 = torch.zeros(2**self.nqubits)
+        # self.state0[0] = 1
+        # self.state0 = self.state0 + 0j
         
-        self.rho0 = torch.zeros( [ 2**self.nqubits, 2**self.nqubits ] )
-        self.rho0[0][0] = 1
-        self.rho0 = self.rho0 + 0j
-        
-    def U_expand(self):
+        # self.rho0 = torch.zeros( [ 2**self.nqubits, 2**self.nqubits ] )
+        # self.rho0[0][0] = 1
+        # self.rho0 = self.rho0 + 0j
+    
+    def _cal_single_gates(self)->List[torch.Tensor]:
         num = len(self.input_lst)
-        
-        lst1 = [torch.eye(2)]*self.nqubits
-        
+        lst1 = [torch.eye(2,2)]*self.nqubits
         if self.pauli == 'X':
-            
             for i,qbit in enumerate(self.wires):
                 lst1[qbit] = rx(self.input_lst[i % num]).matrix
-            E = multi_kron(lst1)
-        
         elif self.pauli == 'Y':
-            
             for i,qbit in enumerate(self.wires):
                 lst1[qbit] = ry(self.input_lst[i % num]).matrix
-            E = multi_kron(lst1)
-        
         elif self.pauli == 'Z':
-            
             for i,qbit in enumerate(self.wires):
                 lst1[qbit] = rz(self.input_lst[i % num]).matrix
-            E = multi_kron(lst1)
-        
         else:
             raise ValueError("pauli parameter must be one of X Y Z")
-        
-        return E
+        return lst1
+    
+    def U_expand(self):
+        lst1 = self._cal_single_gates()
+        return multi_kron(lst1)
+    
+    # def TN_operation(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+    #     return MPS
+    
+    
     
 
 
