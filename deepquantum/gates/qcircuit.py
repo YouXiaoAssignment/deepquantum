@@ -8,8 +8,8 @@ import torch
 from collections.abc import Iterable
 from deepquantum.layers.qlayers import HLayer,XYZLayer,YZYLayer,XZXLayer,XZLayer,ZXLayer,\
     ring_of_cnot,ring_of_cnot2,BasicEntangleLayer
-from deepquantum.gates.qoperator import Hadamard,PauliX,PauliY,PauliZ,rx,ry,rz,\
-    rxx,ryy,rzz,cnot,cz,cphase,SWAP,toffoli,multi_control_cnot
+from deepquantum.gates.qoperator import Hadamard,PauliX,PauliY,PauliZ,rx,ry,rz,u1,u3,\
+    rxx,ryy,rzz,cnot,cz,cphase,cu3,SWAP,toffoli,multi_control_cnot
     
 from deepquantum.gates.qmath import multi_kron
 
@@ -53,12 +53,24 @@ class Circuit(object):
     def TN_evolution(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
         if len(MPS) != self.nqubits:
             raise ValueError('TN_evolution:MPS tensor list must have N elements!')
-        for oper in self.gate:
+        for idx,oper in enumerate(self.gate):
+            #print(idx)
             if oper.supportTN == True:
                 MPS = oper.TN_operation(MPS)
             else:
-                raise ValueError('TN_evolution:some part of circuit do not support Tensor Network')
+                raise ValueError(str(oper.info()['label'])
+                                 +'-TN_evolution:some part of circuit do not support Tensor Network')
         return MPS
+    
+    def circuit_check(self):
+        print('qubit数目：',self.nqubits,'  gate&layer数目：',len(self.gate))
+        unsupportTN = 0
+        for idx,g in enumerate(self.gate):
+            if g.nqubits != self.nqubits:
+                raise ValueError('circuit_check ERROR:gate&layers nqubits must equal to circuit nqubits')
+            if g.supportTN == False:
+                unsupportTN += 1
+        print('number of gate&layers do not support TN:',unsupportTN)
     
     
     def draw(self):
@@ -104,6 +116,12 @@ class Circuit(object):
     def rz(self, theta, wires):
         self.add( rz(theta, self.nqubits, wires) )
     
+    def u1(self, theta, wires):
+        self.add( u1(theta, self.nqubits, wires) )
+    
+    def u3(self, theta_lst, wires):
+        self.add( u3(theta_lst, self.nqubits, wires) )
+    
     def rxx(self, theta, wires):
         self.add( rxx(theta, self.nqubits, wires) )
     
@@ -121,6 +139,9 @@ class Circuit(object):
     
     def cphase(self, theta, wires):
         self.add( cphase(theta, self.nqubits, wires) )
+    
+    def cu3(self, theta_lst, wires):
+        self.add( cu3(theta_lst, self.nqubits, wires) )
     
     def SWAP(self, wires):
         self.add( SWAP(self.nqubits, wires) )

@@ -6,6 +6,9 @@ Created on Fri Nov  5 14:43:13 2021
 """
 import torch
 from deepquantum.gates import multi_kron, IsUnitary, IsHermitian
+from deepquantum.gates.qtensornetwork import TensorDecompAfterTwoQbitGate,\
+    TensorDecompAfterThreeQbitGate
+from typing import List
 
 
 
@@ -101,6 +104,28 @@ class Operation(Operator):
     
     pass
 
+class SingleGateOperation(Operation):
+    def __init__(self,N=-1,wires=-1):
+        self.label = "SingleGateOperation"
+        self.num_wires = 1               
+        
+        self.nqubits = N
+        self.wires = wires
+        self.matrix = torch.eye(2)+0j
+        self.supportTN = True
+    
+    def TN_operation(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+        if self.nqubits == -1 or self.wires == -1:
+            raise ValueError("SingleGateOperation input error! cannot TN_operation")
+        # print(self.wires)
+        temp = MPS[self.wires]
+        temp =  torch.squeeze(self.matrix @ temp.permute(1,2,0).unsqueeze(-1),dim=3)
+        MPS[self.wires] = temp.permute(2,0,1)
+        return MPS
+
+
+
+
 class Observable(Operator):
     
     def IsHermitian(matrix):
@@ -115,7 +140,7 @@ class DiagonalOperation(Operation):
 
 #==============================无参数单比特门==================================
 
-class Hadamard(Observable, Operation):
+class Hadamard(SingleGateOperation):
     #没有可调参数
     #只作用在1个qubit上
     #自己是自己的逆操作
@@ -135,6 +160,7 @@ class Hadamard(Observable, Operation):
         self.nqubits = N
         self.wires = wires
         self.matrix = torch.sqrt( torch.tensor(0.5) ) * torch.tensor([[1,1],[1,-1]]) + 0j
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -153,7 +179,7 @@ class Hadamard(Observable, Operation):
         
     
 
-class PauliX(Observable, Operation):
+class PauliX(SingleGateOperation):
     # label = "PauliX"
     # num_params = 0
     # num_wires = 1               
@@ -169,6 +195,7 @@ class PauliX(Observable, Operation):
         self.nqubits = N
         self.wires = wires
         self.matrix = torch.tensor([[0,1],[1,0]]) + 0j
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -186,7 +213,7 @@ class PauliX(Observable, Operation):
         pass
     
 
-class PauliY(Observable, Operation):
+class PauliY(SingleGateOperation):
     # label = "PauliY"
     # num_params = 0
     # num_wires = 1
@@ -202,6 +229,7 @@ class PauliY(Observable, Operation):
         self.nqubits = N
         self.wires = wires
         self.matrix = torch.tensor([[0j,-1j],[1j,0j]])
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -220,7 +248,7 @@ class PauliY(Observable, Operation):
         pass
 
 
-class PauliZ(Observable, DiagonalOperation):
+class PauliZ(SingleGateOperation):
     # label = "PauliZ"
     # num_params = 0
     # num_wires = 1               
@@ -236,6 +264,7 @@ class PauliZ(Observable, DiagonalOperation):
         self.nqubits = N
         self.wires = wires
         self.matrix = torch.tensor([[1,0],[0,-1]]) + 0j
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -254,7 +283,7 @@ class PauliZ(Observable, DiagonalOperation):
 
 #==============================带参数单比特门==================================
 
-class rx(Operation):
+class rx(SingleGateOperation):
     # label = "Rx"
     # num_params = 1
     # num_wires = 1            
@@ -274,6 +303,7 @@ class rx(Operation):
         self.params = theta
         self.matrix = torch.cos(theta/2.0)*torch.eye(2,2) \
             - 1j*torch.sin(theta/2.0)*PauliX().matrix + 0j
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -298,7 +328,7 @@ class rx(Operation):
 
 
 
-class ry(Operation):
+class ry(SingleGateOperation):
     # label = "Ry"
     # num_params = 1
     # num_wires = 1            
@@ -317,6 +347,7 @@ class ry(Operation):
         self.params = theta
         self.matrix = torch.cos(theta/2.0)*torch.eye(2,2) \
             - 1j*torch.sin(theta/2.0)*PauliY().matrix + 0j
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -341,7 +372,7 @@ class ry(Operation):
 
 
 
-class rz(Operation):
+class rz(SingleGateOperation):
     # label = "Rz"
     # num_params = 1
     # num_wires = 1
@@ -360,6 +391,7 @@ class rz(Operation):
         self.params = theta
         self.matrix = torch.cos(theta/2.0)*torch.eye(2,2) \
             - 1j*torch.sin(theta/2.0)*PauliZ().matrix + 0j
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -378,6 +410,92 @@ class rz(Operation):
         self.matrix = torch.cos(self.params/2.0)*torch.eye(2,2) \
             - 1j*torch.sin(self.params/2.0)*PauliZ().matrix + 0j
 
+
+class u1(SingleGateOperation):
+    
+    '''
+    参考：
+    U1(λ)=[[1,0],
+            [0,exp(iλ)]]
+    '''
+    def __init__(self,theta,N=-1,wires=-1):
+        self.label = "u1"
+        self.num_params = 1
+        self.num_wires = 1
+        self.self_inverse = False
+        
+        self.nqubits = N
+        self.wires = wires
+        theta = theta + torch.tensor(0.0)
+        self.params = theta
+        
+        exp_itheta = torch.cos(theta) + 1j * torch.sin(theta)
+        self.matrix = torch.tensor([[1,0],[0,exp_itheta]]) + 0j
+        
+        self.supportTN = True
+    
+    def U_expand(self):
+        if self.nqubits != -1 and self.wires != -1:
+            return Operator.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
+        else:
+            raise ValueError("u1 gate input error! cannot expand")
+    
+    def info(self):
+        #将门的信息整合后return，用来添加到circuit的gate_lst中
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
+        return info
+    
+    def params_update(self,params):
+        pass
+
+
+
+
+
+
+
+class u3(SingleGateOperation):
+    
+    '''
+    U3(θ,ϕ,λ)=Rz(ϕ)Rx(−π/2)Rz(θ)Rx(π/2)Rz(λ)
+    '''
+    def __init__(self,theta_lst,N=-1,wires=-1):
+        self.label = "u3"
+        self.num_params = 3
+        self.num_wires = 1
+        self.self_inverse = False
+        
+        if type(theta_lst) == type([1]):
+            theta_lst = torch.tensor(theta_lst)
+        self.nqubits = N
+        self.wires = wires
+        self.params = theta_lst
+        
+        theta = theta_lst[0]
+        phi = theta_lst[1]
+        lambd = theta_lst[2]
+        self.matrix = \
+            rz(phi).matrix \
+            @ rx(-0.5*torch.pi).matrix \
+            @ rz(theta).matrix \
+            @ rx(0.5*torch.pi).matrix \
+            @ rz(lambd).matrix
+        
+        self.supportTN = True
+    
+    def U_expand(self):
+        if self.nqubits != -1 and self.wires != -1:
+            return Operator.gate_expand_1toN(self.matrix, self.nqubits, self.wires)
+        else:
+            raise ValueError("u3 gate input error! cannot expand")
+    
+    def info(self):
+        #将门的信息整合后return，用来添加到circuit的gate_lst中
+        info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
+        return info
+    
+    def params_update(self,params):
+        pass
 
 #==============================带参数两比特门==================================
 
@@ -403,6 +521,7 @@ class rxx(Operation):
         self.params = theta
         self.matrix = torch.cos(theta/2.0)*torch.eye(4,4) \
             - 1j*torch.sin(theta/2.0)*torch.kron(PauliX().matrix,PauliX().matrix) + 0j
+        self.supportTN = False
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -461,6 +580,7 @@ class ryy(Operation):
         self.params = theta
         self.matrix = torch.cos(theta/2.0)*torch.eye(4,4) \
             - 1j*torch.sin(theta/2.0)*torch.kron(PauliY().matrix,PauliY().matrix) + 0j
+        self.supportTN = False
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -519,6 +639,7 @@ class rzz(Operation):
         self.params = theta
         self.matrix = torch.cos(theta/2.0)*torch.eye(4,4) \
             - 1j*torch.sin(theta/2.0)*torch.kron(PauliZ().matrix,PauliZ().matrix) + 0j
+        self.supportTN = False
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -577,6 +698,7 @@ class cnot(Operation):
                                    [0,1,0,0],\
                                    [0,0,0,1],\
                                    [0,0,1,0]]) + 0j
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -587,6 +709,63 @@ class cnot(Operation):
             return Operation.two_qubit_control_gate( sigma_x, self.nqubits, control, target )
         else:
             raise ValueError("cnot gate input error! cannot expand")
+    
+    def TN_operation(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+        if self.nqubits == -1 or self.wires == -1:
+            raise ValueError("cnot gate input error! cannot TN_operation")
+        # control = self.wires[0]
+        # target = self.wires[1]
+        upqbit = min(self.wires)
+        downqbit = max(self.wires)
+        if upqbit + 1 == downqbit: 
+            # temp1 = MPS[upqbit] #control qubit
+            # temp2 = MPS[downqbit]  #target qubit
+            
+            temp = (MPS[upqbit].unsqueeze(1) @ MPS[downqbit].unsqueeze(0) ).permute(2,3,0,1)
+            shape = temp.shape
+            temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+            if self.wires[0] == upqbit:
+                temp = cnot().matrix @ temp
+            else:
+                temp = cnot(2,[1,0]).U_expand() @ temp
+            temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+            temp = temp.permute(2,3,0,1)
+            #融合后的张量恢复成两个张量
+            MPS[upqbit],MPS[downqbit] = TensorDecompAfterTwoQbitGate(temp)
+        else:
+            #当cnot门横跨多个量子比特时，需要用SWAP将控制、目标比特搬运至最近邻
+            for i in range(upqbit,downqbit-1):
+                temp = (MPS[i].unsqueeze(1) @ MPS[i+1].unsqueeze(0) ).permute(2,3,0,1)
+                shape = temp.shape
+                temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+                temp = SWAP().matrix @ temp
+                temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+                temp = temp.permute(2,3,0,1)
+                #融合后的张量恢复成两个张量
+                MPS[i],MPS[i+1] = TensorDecompAfterTwoQbitGate(temp)
+            
+            temp = (MPS[downqbit-1].unsqueeze(1) @ MPS[downqbit].unsqueeze(0) ).permute(2,3,0,1)
+            shape = temp.shape
+            temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+            if self.wires[0] == upqbit:
+                temp = cnot().matrix @ temp
+            else:
+                temp = cnot(2,[1,0]).U_expand() @ temp
+            temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+            temp = temp.permute(2,3,0,1)
+            #融合后的张量恢复成两个张量
+            MPS[downqbit-1],MPS[downqbit] = TensorDecompAfterTwoQbitGate(temp)
+            
+            for i in range(downqbit-1,upqbit,-1):
+                temp = (MPS[i-1].unsqueeze(1) @ MPS[i].unsqueeze(0) ).permute(2,3,0,1)
+                shape = temp.shape
+                temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+                temp = SWAP().matrix @ temp
+                temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+                temp = temp.permute(2,3,0,1)
+                #融合后的张量恢复成两个张量
+                MPS[i-1],MPS[i] = TensorDecompAfterTwoQbitGate(temp)      
+        return MPS
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -624,6 +803,7 @@ class cz(Operation):
                                    [0,1,0,0],\
                                    [0,0,1,0],\
                                    [0,0,0,-1]]) + 0j
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
@@ -634,6 +814,36 @@ class cz(Operation):
             return Operation.two_qubit_control_gate( sigma_z, self.nqubits, control, target )
         else:
             raise ValueError("cz gate input error! cannot expand")
+    
+    def TN_operation(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+        if self.nqubits == -1 or self.wires == -1:
+            raise ValueError("TN_operation:cz gate input error! cannot expand")
+        if len(self.wires) != 2:
+            raise ValueError("TN_operation:cz gate must be applied on 2 qbits")
+        upqbit = min(self.wires)
+        downqbit = max(self.wires)
+        
+        for i in range(upqbit,downqbit-1):
+            MPS = SWAP(self.nqubits,[i,i+1]).TN_operation(MPS)
+        
+        temp = (MPS[downqbit-1].unsqueeze(1) @ MPS[downqbit].unsqueeze(0) ).permute(2,3,0,1)
+        shape = temp.shape
+        temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+        if self.wires[0] == upqbit:
+            #temp = cz().matrix @ temp
+            temp = self.matrix @ temp
+        else:
+            temp = cz(2,[1,0]).U_expand() @ temp
+        temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+        temp = temp.permute(2,3,0,1)
+        #融合后的张量恢复成两个张量
+        MPS[downqbit-1],MPS[downqbit] = TensorDecompAfterTwoQbitGate(temp)
+        
+        for i in range(downqbit-1,upqbit,-1):
+            MPS = SWAP(self.nqubits,[i-1,i]).TN_operation(MPS)
+        
+        return MPS
+    
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -670,6 +880,7 @@ class cphase(Operation):
                                     [0,1,0,0],\
                                     [0,0,1,0],\
                                     [0,0,0,exp_itheta]]) + 0j
+        self.supportTN = True
     
     def U_expand(self):
         if self.nqubits != -1 and self.wires != -1:
@@ -681,6 +892,35 @@ class cphase(Operation):
         else:
             raise ValueError("cphase gate input error! cannot expand")
     
+    def TN_operation(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+        if self.nqubits == -1 or self.wires == -1:
+            raise ValueError("TN_operation:cz gate input error! cannot expand")
+        if len(self.wires) != 2:
+            raise ValueError("TN_operation:cz gate must be applied on 2 qbits")
+        upqbit = min(self.wires)
+        downqbit = max(self.wires)
+        
+        for i in range(upqbit,downqbit-1):
+            MPS = SWAP(self.nqubits,[i,i+1]).TN_operation(MPS)
+        #=====================================================================
+        temp = (MPS[downqbit-1].unsqueeze(1) @ MPS[downqbit].unsqueeze(0) ).permute(2,3,0,1)
+        shape = temp.shape
+        temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+        if self.wires[0] == upqbit:
+            #temp = cphase(self.params).matrix @ temp
+            temp = self.matrix @ temp
+        else:
+            temp = cphase(self.params,2,[1,0]).U_expand() @ temp
+        temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+        temp = temp.permute(2,3,0,1)
+        #融合后的张量恢复成两个张量
+        MPS[downqbit-1],MPS[downqbit] = TensorDecompAfterTwoQbitGate(temp)
+        #=====================================================================
+        for i in range(downqbit-1,upqbit,-1):
+            MPS = SWAP(self.nqubits,[i-1,i]).TN_operation(MPS)
+        
+        return MPS
+    
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
         info = {'label':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':self.params}
@@ -688,6 +928,84 @@ class cphase(Operation):
     
     def params_update(self,params):
         pass
+
+
+
+
+class cu3(Operation):
+    def __init__(self,theta_lst,N=-1,wires=-1):
+        #wires以list形式输入
+        self.label = "cu3"
+        self.num_params = 3
+        self.num_wires = 2          
+        self.self_inverse = False
+        
+        self.nqubits = N
+        self.wires = wires
+        
+        if type(theta_lst) == type([1]):
+            theta_lst = torch.tensor(theta_lst)
+        self.params = theta_lst
+        
+        theta = theta_lst[0]
+        phi = theta_lst[1]
+        lambd = theta_lst[2]
+        self.u_matrix = \
+            rz(phi).matrix \
+            @ rx(-0.5*torch.pi).matrix \
+            @ rz(theta).matrix \
+            @ rx(0.5*torch.pi).matrix \
+            @ rz(lambd).matrix
+        self.matrix = Operation.two_qubit_control_gate( self.u_matrix, 2, 0, 1 )
+        
+        self.supportTN = True
+    
+    def U_expand(self):
+        if self.nqubits != -1 and self.wires != -1:
+            control = self.wires[0]
+            target = self.wires[1]
+            return Operation.two_qubit_control_gate( self.u_matrix, self.nqubits, control, target )
+        else:
+            raise ValueError("cu3 gate input error! cannot expand")
+    
+    def TN_operation(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+        if self.nqubits == -1 or self.wires == -1:
+            raise ValueError("TN_operation: cu3 gate input error! cannot expand")
+        if len(self.wires) != 2:
+            raise ValueError("TN_operation: cu3 gate must be applied on 2 qbits")
+        upqbit = min(self.wires)
+        downqbit = max(self.wires)
+        
+        for i in range(upqbit,downqbit-1):
+            MPS = SWAP(self.nqubits,[i,i+1]).TN_operation(MPS)
+        #=====================================================================
+        temp = (MPS[downqbit-1].unsqueeze(1) @ MPS[downqbit].unsqueeze(0) ).permute(2,3,0,1)
+        shape = temp.shape
+        temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+        if self.wires[0] == upqbit:
+            temp = self.matrix @ temp
+        else:
+            #temp = cu3(self.params,2,[1,0]).U_expand() @ temp
+            temp = Operation.two_qubit_control_gate( self.u_matrix, 2, 1, 0 ) @ temp
+        temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+        temp = temp.permute(2,3,0,1)
+        #融合后的张量恢复成两个张量
+        MPS[downqbit-1],MPS[downqbit] = TensorDecompAfterTwoQbitGate(temp)
+        #=====================================================================
+        for i in range(downqbit-1,upqbit,-1):
+            MPS = SWAP(self.nqubits,[i-1,i]).TN_operation(MPS)
+        
+        return MPS
+    
+    
+    def info(self):
+        #将门的信息整合后return，用来添加到circuit的gate_lst中
+        info = {'label':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':self.params}
+        return info
+    
+    def params_update(self,params):
+        pass
+
 
 
 
@@ -717,6 +1035,7 @@ class SWAP(Operation):
                                    [0,0,1,0],\
                                    [0,1,0,0],\
                                    [0,0,0,1]]) + 0j
+        self.supportTN = True
     
     def U_expand(self):
         if self.nqubits != -1 and self.wires != -1:
@@ -747,6 +1066,33 @@ class SWAP(Operation):
             return multi_kron(lst1) + multi_kron(lst2) + multi_kron(lst3) + multi_kron(lst4) + 0j
         else:
             raise ValueError("SWAP gate input error! cannot expand")
+    
+    
+    def TN_operation(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+        '''
+        SWAP门是tensor network的核心，很多跨度很大的多比特门的分解需要一堆SWAP
+        '''
+        if self.nqubits == -1 or self.wires == -1:
+            raise ValueError("TN_operation: SWAP gate input error! cannot expand")
+        if len(self.wires) != 2:
+            raise ValueError("TN_operation: SWAP gate must be applied on 2 qbits")
+        upqbit = min(self.wires)
+        downqbit = max(self.wires)
+        for i in range(upqbit,downqbit):
+            temp = (MPS[i].unsqueeze(1) @ MPS[i+1].unsqueeze(0) ).permute(2,3,0,1)
+            s = temp.shape
+            temp = temp.view(s[0],s[1],s[2]*s[3],1)
+            temp = (self.matrix @ temp).view(s[0],s[1],s[2],s[3])
+            temp = temp.permute(2,3,0,1)
+            MPS[i],MPS[i+1] = TensorDecompAfterTwoQbitGate(temp)
+        for i in range(downqbit-1,upqbit,-1):
+            temp = (MPS[i-1].unsqueeze(1) @ MPS[i].unsqueeze(0) ).permute(2,3,0,1)
+            s = temp.shape
+            temp = temp.view(s[0],s[1],s[2]*s[3],1)
+            temp = (self.matrix @ temp).view(s[0],s[1],s[2],s[3])
+            temp = temp.permute(2,3,0,1)
+            MPS[i-1],MPS[i] = TensorDecompAfterTwoQbitGate(temp)
+        return MPS
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -784,11 +1130,13 @@ class toffoli(Operation):
         self.self_inverse = True
         
         self.nqubits = N
-        if len(wires) != 3:
-            raise ValueError("toffoli gate must be applied on 3 qubits")
         self.wires = wires
-        self.control_lst = [ wires[0], wires[1] ]
-        self.target_lst = [ wires[2] ]
+        if wires != -1:
+            if len(wires) != 3:
+                raise ValueError("toffoli gate must be applied on 3 qubits")
+            
+            self.control_lst = [ wires[0], wires[1] ]
+            self.target_lst = [ wires[2] ]
         self.matrix = torch.tensor([[1,0,0,0,0,0,0,0],\
                                    [0,1,0,0,0,0,0,0],\
                                    [0,0,1,0,0,0,0,0],\
@@ -797,15 +1145,89 @@ class toffoli(Operation):
                                    [0,0,0,0,0,1,0,0],\
                                    [0,0,0,0,0,0,0,1],\
                                    [0,0,0,0,0,0,1,0]]) + 0j
+        self.supportTN = True
         #self.U = self.U_expand()
     
     def U_expand(self):
+        
         if self.nqubits != -1 and self.wires != -1:
             sigma_x = torch.tensor( [[0,1],[1,0]] ) + 0j
             
             return Operation.multi_control_gate( sigma_x, self.nqubits, self.control_lst, self.target_lst[0] )
         else:
             raise ValueError("toffoli gate input error! cannot expand")
+    
+    def TN_operation(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+        if self.nqubits == -1 or self.wires == -1:
+            raise ValueError("toffoli gate input error! cannot TN_operation")
+        sw = sorted(self.wires)
+        upqbit = sw[0]
+        midqbit = sw[1]
+        downqbit = sw[2]
+        #通过一堆SWAP把upqbit和downqbit移动到midqbit的近邻
+        for i in range(upqbit,midqbit-1):
+            MPS = SWAP(self.nqubits,[i,i+1]).TN_operation(MPS)
+            # temp = (MPS[i].unsqueeze(1) @ MPS[i+1].unsqueeze(0) ).permute(2,3,0,1)
+            # shape = temp.shape
+            # temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+            # temp = SWAP().matrix @ temp
+            # temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+            # temp = temp.permute(2,3,0,1)
+            # #融合后的张量恢复成两个张量
+            # MPS[i],MPS[i+1] = TensorDecompAfterTwoQbitGate(temp)
+        for i in range(downqbit,midqbit+1,-1):
+            MPS = SWAP(self.nqubits,[i-1,i]).TN_operation(MPS)
+            # temp = (MPS[i-1].unsqueeze(1) @ MPS[i].unsqueeze(0) ).permute(2,3,0,1)
+            # shape = temp.shape
+            # temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+            # temp = SWAP().matrix @ temp
+            # temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+            # temp = temp.permute(2,3,0,1)
+            # #融合后的张量恢复成两个张量
+            # MPS[i-1],MPS[i] = TensorDecompAfterTwoQbitGate(temp)
+        
+        
+        
+        temp = (MPS[midqbit-1].unsqueeze(1).unsqueeze(1) \
+                @ MPS[midqbit].unsqueeze(1).unsqueeze(0) \
+                @ MPS[midqbit+1].unsqueeze(0).unsqueeze(0) ).permute(3,4,0,1,2)
+        shape = temp.shape
+        temp = temp.view(shape[0],shape[1],shape[2]*shape[3]*shape[4],1)
+        if downqbit == self.wires[2]:
+            temp = toffoli().matrix @ temp
+        elif midqbit == self.wires[2]:
+            temp = toffoli(3,[0,2,1]).U_expand() @ temp
+        else:
+            temp = toffoli(3,[1,2,0]).U_expand() @ temp
+        temp = temp.view(shape[0],shape[1],shape[2],shape[3],shape[4])
+        temp = temp.permute(2,3,4,0,1)
+        #融合后的张量恢复成两个张量
+        MPS[midqbit-1], MPS[midqbit], MPS[midqbit+1] = TensorDecompAfterThreeQbitGate(temp)
+        
+        
+        
+        #通过一堆SWAP把upqbit和downqbit移动到midqbit的近邻
+        for i in range(midqbit-1,upqbit,-1):
+            MPS = SWAP(self.nqubits,[i-1,i]).TN_operation(MPS)
+            # temp = (MPS[i-1].unsqueeze(1) @ MPS[i].unsqueeze(0) ).permute(2,3,0,1)
+            # shape = temp.shape
+            # temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+            # temp = SWAP().matrix @ temp
+            # temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+            # temp = temp.permute(2,3,0,1)
+            # #融合后的张量恢复成两个张量
+            # MPS[i-1],MPS[i] = TensorDecompAfterTwoQbitGate(temp)
+        for i in range(midqbit+1,downqbit):
+            MPS = SWAP(self.nqubits,[i,i+1]).TN_operation(MPS)
+            # temp = (MPS[i].unsqueeze(1) @ MPS[i+1].unsqueeze(0) ).permute(2,3,0,1)
+            # shape = temp.shape
+            # temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
+            # temp = SWAP().matrix @ temp
+            # temp = temp.view(shape[0],shape[1],shape[2],shape[3])
+            # temp = temp.permute(2,3,0,1)
+            # #融合后的张量恢复成两个张量
+            # MPS[i],MPS[i+1] = TensorDecompAfterTwoQbitGate(temp)
+        return MPS
     
     def info(self):
         #将门的信息整合后return，用来添加到circuit的gate_lst中
@@ -840,6 +1262,7 @@ class multi_control_cnot(Operation):
         self.wires = wires
         self.control_lst =  list(wires[0:len(wires)-1]) 
         self.target_lst = [ wires[-1] ]
+        self.supportTN = False
         #self.U = self.U_expand()
     
     def U_expand(self):
