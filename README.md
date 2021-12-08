@@ -1,7 +1,7 @@
 # deepquantum
 
 
-#### 3. Install deepquantum lib
+#### Install deepquantum lib
 
 Install the deepquantum with the following commands.
 
