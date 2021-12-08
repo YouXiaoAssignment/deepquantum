@@ -375,14 +375,14 @@ class ring_of_cnot(TwoQbitGateLayer):
         只支持自上而下的cnot，即上方的qbit一定是control，下方的一定是target
         '''
         if self.wires != list( range(self.nqubits) ):
-            raise ValueError('ring_of_cnot,TT_operation error')
-        L = len(self.wires) 
+            raise ValueError('ring_of_cnot,TN_operation error')
+        L = len(self.wires)
         for i in range(L-1):
             temp1 = MPS[self.wires[i]] #control bit
             temp2 = MPS[self.wires[(i+1)%L]] #target bit
-            
             temp = (temp1.unsqueeze(1) @ temp2.unsqueeze(0) ).permute(2,3,0,1)
             shape = temp.shape
+            #print(shape)
             temp = temp.view(shape[0],shape[1],shape[2]*shape[3],1)
             temp = cnot().matrix @ temp
             temp = temp.view(shape[0],shape[1],shape[2],shape[3])
