@@ -41,6 +41,25 @@ from typing import List
 #         state[i] = input_lst[i]
 #     return state
 
+def gram_encoding(x):
+    """
+    input: 1*n Tensor
+    perform L2 regularization on x, x为complex
+    可以将n’×n’的Gram半正定矩阵转换为n’×n’的量子态密度矩阵
+    """
+    x = x.T@x 
+    
+    with torch.no_grad():
+        # x = x.squeeze( )
+        if x.norm() != 1:
+            xd = x.diag()
+            xds = (xd.sqrt()).unsqueeze(1)
+            xdsn = xds / (xds.norm() + 1e-12)
+            xdsn2 = xdsn @ dag(xdsn)                    #dag() 自定义函数
+            xdsn2 = xdsn2.type(dtype=torch.complex64)
+        else:
+            xdsn2 = x.type(dtype=torch.complex64)
+    return xdsn2
 
 class PauliEncoding(SingleGateLayer):
     def __init__(self, N, input_lst, wires, pauli='X'):
