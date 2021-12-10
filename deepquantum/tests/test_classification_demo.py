@@ -26,7 +26,7 @@ from deepquantum.layers.qlayers import YZYLayer, ZXLayer,ring_of_cnot, ring_of_c
 
 #==============================================================================
 class qcir(nn.Module):
-    def __init__(self,nqubits):
+    def __init__(self, nqubits):
         super().__init__()
         #属性：量子线路qubit数目，随机初始化的线路参数，测量力学量列表
         self.nqubits = nqubits
@@ -40,7 +40,7 @@ class qcir(nn.Module):
         #生成测量力学量的列表
         M_lst = []
         for i in range(self.nqubits):
-            Mi = op.PauliZ(self.nqubits,i).U_expand()
+            Mi = op.PauliZ(self.nqubits, i).U_expand()
             M_lst.append( Mi )
         
         return M_lst

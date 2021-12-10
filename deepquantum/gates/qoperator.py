@@ -5,17 +5,14 @@ Created on Fri Nov  5 14:43:13 2021
 @author: shish
 """
 import torch
-from deepquantum.gates import multi_kron, IsUnitary, IsHermitian
-from deepquantum.gates.qtensornetwork import TensorDecompAfterTwoQbitGate,\
-    TensorDecompAfterThreeQbitGate
+from qmath import multi_kron, IsUnitary, IsHermitian
+from qtensornetwork import TensorDecompAfterTwoQbitGate, TensorDecompAfterThreeQbitGate
 from typing import List
-
-
 
 class Operator(object):
     
     @staticmethod #为了让该函数既可以实例化调用，也可以不实例化直接Operator.gate_expand_1toN()调用
-    def gate_expand_1toN(gate,N,index):
+    def gate_expand_1toN(gate, N, index):
         '''
         不要直接用这个函数
         '''
@@ -23,7 +20,7 @@ class Operator(object):
             raise ValueError("number of qubits N must be >= 1")
         if index < 0 or index > N - 1:
             raise ValueError("index must between 0~N-1")
-        lst1 = [torch.eye(2,2)]*N
+        lst1 = [torch.eye(2, 2)]*N
         lst1[index] = gate
         return multi_kron(lst1) + 0j
     
