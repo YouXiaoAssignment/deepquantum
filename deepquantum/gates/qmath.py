@@ -3,12 +3,13 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from typing import List
+import qoperator as op
 import time
 
 def multi_kron(lst:List[torch.Tensor]):
     #为避免torchscript类型推断错误，需要特别指定输入数据类型
     rst = lst[0]
-    for i in range( 1,len(lst) ):
+    for i in range(1, len(lst)):
         rst = torch.kron(rst, lst[i])
     return rst
 
@@ -68,6 +69,7 @@ def IsNormalized(vector):
     summ = 0.0
     for i in range(n):
         summ += (torch.abs(vector[i])) ** 2
+
     if torch.abs(summ - 1) > 1e-6:
         #print("vector is not normalized")
         return False
@@ -142,17 +144,13 @@ def partial_trace_old(rho,N,trace_lst):
     for i in range(2):
         A = torch.kron( torch.kron(id1,id3[i]), id2 ) + 0j
         rho_nxt = rho_nxt + A @ rho @ dag(A)
-    
-    new_lst = [ i-1 for i in trace_lst[1:] ] #trace掉一个qubit，他后面的qubit索引号要减1
+    new_lst = [ i-1 for i in trace_lst[1:] ]  #trace掉一个qubit，他后面的qubit索引号要减1
     
     return partial_trace_old(rho_nxt,N-1,new_lst) + 0j
 
 
 
-
-
-
-def partial_trace(rho,N,trace_lst):
+def partial_trace(rho, N, trace_lst):
     '''
     trace_lst里面是想trace掉的qubit的索引号，须从小到大排列
     '''
@@ -161,7 +159,7 @@ def partial_trace(rho,N,trace_lst):
         raise ValueError("trace of density matrix must be 1")
     if rho.shape[0] != 2**N:
         raise ValueError('rho dim error')
-    if len(trace_lst)!=0 and max(trace_lst) > N - 1:
+    if len(trace_lst) != 0 and max(trace_lst) > N - 1:
         raise ValueError('element in trace_lst must be less than N-1')
     
     trace_lst.sort()#必须从小到大排列
@@ -201,57 +199,90 @@ def partial_trace(rho,N,trace_lst):
 
     new_lst = [ i-1 for i in trace_lst[1:] ] #trace掉一个qubit，他后面的qubit索引号要减1
     
-    return partial_trace(rho_nxt,N-1,new_lst) + 0j
+    return partial_trace(rho_nxt, N-1, new_lst) + 0j
 
 
 
+def _Zmeasure(n_qubit, ith=None):
+    #生成测量力学量的列表
+    M_lst = []
+    if not ith:
+        for i in range(n_qubit):
+            Mi = op.PauliZ(n_qubit, i).U_expand()
+            M_lst.append(Mi)
+    elif type(ith) == int:
+        Mi = op.PauliZ(n_qubit, ith).U_expand()
+        M_lst.append(Mi)
+    else:
+        for i in ith:
+            Mi = op.PauliZ(n_qubit, i).U_expand()
+            M_lst.append(Mi)
+    return M_lst
 
 
-def measure(state,M,rho=False,physic=False):
+def expval(state, M, rho=False):
     if not rho: #输入态为态矢，而非密度矩阵
+        state = state.view(-1, 1)
         if len(state.shape) != 2: #state必须是二维张量，即便只有1个态矢也要view成(n,1)
             raise ValueError("state必须是二维张量,即便batch只有1个态矢也要view成(n,1)")
-        else: #state为batch_size个态矢，即二维张量
-            
-            m1 = (dag(state) @ M @ state)
-            
-            rst = torch.diag(m1).view(-1,1) #取对角元变成1维张量，在被view成2维张量
+        else:   #state为batch_size个态矢，即二维张量
+            m1 = dag(state) @ M @ state
+            rst = torch.diag(m1).squeeze() #取对角元变成1维张量，在被view成2维张量
             rst = rst.real
             return rst
                   
-    else:#state是1个密度矩阵，此时不支持batch
+    else:   #state是1个密度矩阵，此时不支持batch
         if torch.abs(torch.trace(state) - 1) > 1e-4:
             raise ValueError("trace of density matrix must be 1")
-        return torch.trace(state @ M).real 
+        return torch.trace(state @ M).real
 
 
+def measure(n_qubit, state, ith=None):
+    state = state.squeeze()
+    if len(state.shape) == 1:
+        rho=False
+    else:
+        rho=True
 
-
-
+    measure_rst = []
+    M_lst = _Zmeasure(n_qubit, ith)
+    for Mi in M_lst:
+        measure_rst.append(expval(state, Mi, rho=rho))
+    return torch.tensor(measure_rst)
 
 if __name__ == '__main__':
     
-    N = 10
+    N = 2
     trace_lst = list(range(N-2))
     #trace_lst = [0,3,5,8]
-    rm = torch.rand(2**N,2**N)
-    rho = (1.0/torch.trace(rm))*rm
-    
-    r1 = partial_trace_old(rho,N,trace_lst)
-    r2 = partial_trace(rho,N,trace_lst)
-    print(r1-r2)
-    t1 = time.time()
-    for i in range(10):
-        r1 = partial_trace_old(rho,N,trace_lst)
-    t2 = time.time()
-    for i in range(10):
-        r2 = partial_trace(rho,N,trace_lst)
-    t3 = time.time()
-    print('old method:',t2 - t1)
-    print('new method:',t3 - t2)
-    print('new/old:',(t3 - t2)/(t2 - t1))
-    #11qubit,13%,12qubit,7%,13qubit,3.5%
-    input('')
+    rm = torch.rand(2**N, 2**N)
+    rho = (1.0/torch.trace(rm))*rm +0j
+    state1 = torch.rand(2**N) +0j
+
+    print(rho)
+    # print(rho.shape)
+    value = measure(N, state=rho)
+    print(value)
+
+    print(state1)
+    value = measure(N, state=state1)
+    print(value)
+
+    # r1 = partial_trace_old(rho, N, trace_lst)
+    # r2 = partial_trace(rho, N, trace_lst)
+    # print(r1-r2)
+    # t1 = time.time()
+    # for i in range(10):
+    #     r1 = partial_trace_old(rho, N, trace_lst)
+    # t2 = time.time()
+    # for i in range(10):
+    #     r2 = partial_trace(rho, N, trace_lst)
+    # t3 = time.time()
+    # print('old method:', t2 - t1)
+    # print('new method:', t3 - t2)
+    # print('new/old:', (t3 - t2)/(t2 - t1))
+    # #11qubit,13%,12qubit,7%,13qubit,3.5%
+    # input('')
     
     
     
