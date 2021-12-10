@@ -6,22 +6,32 @@ Created on Mon Nov  8 13:16:17 2021
 """
 import torch
 from collections.abc import Iterable
-from deepquantum.layers.qlayers import *
-from deepquantum.gates.qoperator import * 
-from deepquantum.gates.qmath import multi_kron, measure, IsUnitary
+from deepquantum.layers.qlayers import HLayer,XYZLayer,YZYLayer,XZXLayer,XZLayer,ZXLayer,\
+    ring_of_cnot,ring_of_cnot2,BasicEntangleLayer
+from deepquantum.gates.qoperator import Hadamard,PauliX,PauliY,PauliZ,rx,ry,rz,u1,u3,\
+    rxx,ryy,rzz,cnot,cz,cphase,cu3,SWAP,toffoli,multi_control_cnot
+    
+from deepquantum.gates.qmath import multi_kron
+
+from typing import List
 
 
 class Circuit(object):
     def __init__(self, N):
         self.nqubits = N  # 总QuBit的个数
         self.gate = []  # 顺序添加各类门
-        self._U = torch.eye(2**self.nqubits) + 0j     # 线路酉矩阵
+        self._U = torch.tensor(1.0) + 0j     # 线路酉矩阵，初始为1
         
-        #线路的初始态，默认全为|0>态
-        self.state_init = torch.zeros(2**self.nqubits)
-        self.state_init[0] = 1
-        self.state_init = self.state_init + 0j
         
+        
+    def state_init(self):
+        '''
+        线路的初始态，默认全为|0>态,避免内存浪费，需要时再调用
+        '''
+        state_init = torch.zeros(2**self.nqubits)
+        state_init[0] = 1.0
+        state_init = state_init + 0j
+        return state_init
 
     def add(self, gate):
         self.gate.append(gate)
@@ -40,15 +50,48 @@ class Circuit(object):
        
         return U_overall
     
+    def TN_evolution(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+        if len(MPS) != self.nqubits:
+            raise ValueError('TN_evolution:MPS tensor list must have N elements!')
+        for idx,oper in enumerate(self.gate):
+            #print(idx)
+            if oper.supportTN == True:
+                MPS = oper.TN_operation(MPS)
+            else:
+                raise ValueError(str(oper.info()['label'])
+                                 +'-TN_evolution:some part of circuit do not support Tensor Network')
+        return MPS
+    
+    def circuit_check(self):
+        print('qubit数目：',self.nqubits,'  gate&layer数目：',len(self.gate))
+        unsupportTN = 0
+        for idx,g in enumerate(self.gate):
+            if g.nqubits != self.nqubits:
+                raise ValueError('circuit_check ERROR:gate&layers nqubits must equal to circuit nqubits')
+            if g.supportTN == False:
+                unsupportTN += 1
+        print('number of gate&layers do not support TN:',unsupportTN)
+    
+    
     def draw(self):
-        for each in self.gate:
-            pass
         pass
     
     def clear(self):
         self.gate = []
-        self._U = torch.eye(2**self.nqubits) + 0j
+        self._U = torch.tensor(1.0) + 0j
+
         
+
+
+
+
+
+
+
+
+
+
+
     def Hadamard(self, wires):
         if isinstance(wires, Iterable):
             self.add( HLayer(self.nqubits, wires) )
@@ -73,6 +116,12 @@ class Circuit(object):
     def rz(self, theta, wires):
         self.add( rz(theta, self.nqubits, wires) )
     
+    def u1(self, theta, wires):
+        self.add( u1(theta, self.nqubits, wires) )
+    
+    def u3(self, theta_lst, wires):
+        self.add( u3(theta_lst, self.nqubits, wires) )
+    
     def rxx(self, theta, wires):
         self.add( rxx(theta, self.nqubits, wires) )
     
@@ -88,12 +137,21 @@ class Circuit(object):
     def cz(self, wires):
         self.add( cz(self.nqubits, wires) )
     
+    def cphase(self, theta, wires):
+        self.add( cphase(theta, self.nqubits, wires) )
+    
+    def cu3(self, theta_lst, wires):
+        self.add( cu3(theta_lst, self.nqubits, wires) )
+    
+    def SWAP(self, wires):
+        self.add( SWAP(self.nqubits, wires) )
+    
     def toffoli(self, wires):
         self.add( toffoli(self.nqubits, wires) )
     
     def multi_control_cnot(self, wires):
         self.add( multi_control_cnot(self.nqubits, wires) )
-        
+    #====================================================================    
     def XYZLayer(self, wires, params_lst):
         self.add( XYZLayer(self.nqubits, wires, params_lst) )
     
@@ -116,11 +174,13 @@ class Circuit(object):
         self.add( ring_of_cnot2(self.nqubits, wires) )
     
     def BasicEntangleLayer(self, wires, params_lst, repeat=1):
-        self.add( BasicEntangleLayer(self.nqubits, wires, params_lst, repeat=1) )
+        self.add( BasicEntangleLayer(self.nqubits, wires, params_lst, repeat) )
     
     
 if __name__ == '__main__':
     cir = Circuit(3)
+    
+    cir.cphase(1.2, [1,2])
     
     cir.Hadamard([0,1])
     
@@ -132,11 +192,14 @@ if __name__ == '__main__':
     
     cir.BasicEntangleLayer([0,1,2], torch.rand(9))
     
+    cir.SWAP([0,2])
+    
     for each in cir.gate:
         print(each.info()['label'])
     
-    print('\n', cir.U())
-    
+    print('\n',cir.U())
+    lst1 = [torch.eye(2)]*3
+    multi_kron(lst1)
     input('')
         
         
