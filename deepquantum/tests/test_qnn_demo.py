@@ -83,18 +83,19 @@ class qcir(nn.Module):
         U, phi_encoded_batch = self.build_circuit(input_lst_batch)
         #计算线路演化终态
         phi_out = U @ phi_encoded_batch # 8 X batch_size
-        
+        phi_out = phi_out.permute(1,0)
         #模拟测量得到各个测量力学量的期望值
         measure_rst = []
-        for Mi in self.M_lst: 
-            measure_rst.append( measure(phi_out, Mi) )
+        for Mi in self.M_lst:
+            measure_rst.append((phi_out.conj().unsqueeze(-2) @ Mi @ phi_out.unsqueeze(-1) ).squeeze(dim=2) )
+        #measure_rst =  measure(self.nqubits, phi_out) 
         
         #以3个qubit的线路为例，把3个[batch,1]的矩阵拼接为[batch,3]
         rst = torch.cat( tuple(measure_rst),dim=1 ) 
         
         #把值域做拉伸，从[-1,1]变为[-4,4]
         rst = ( rst + 0 ) * 4
-        return rst
+        return rst.real
         
         # rst_average = rst[:,0]
         # for i in range(1,rst.shape[1]):

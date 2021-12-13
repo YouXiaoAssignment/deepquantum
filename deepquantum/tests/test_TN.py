@@ -32,7 +32,7 @@ if 0:
     for each in MPS:
         print(each.shape)
     
-if 1:
+if 0:
     '''
     测试pauliencoding层加入TN功能后是否正确
     '''
@@ -54,12 +54,12 @@ if 1:
 
 
 #if __name__ == "__main__":
-if 0:
+if 1:
     '''
     基于Tensor Network的量子线路态矢演化测试
     '''
     print('基于Tensor Network的量子线路态矢演化测试:')    
-    N = 4    #量子线路的qubit总数
+    N = 10    #量子线路的qubit总数
     wires_lst = list(range(N))
     weight = torch.rand(21*N) * 2 * torch.pi
     
@@ -270,144 +270,7 @@ if 0:
     print(psif1)
     print('TN平均耗时：',T/itern)
     
-input('END')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+input('test_TN.py END')
 
 
 

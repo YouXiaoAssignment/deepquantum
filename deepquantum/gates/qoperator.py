@@ -5,8 +5,8 @@ Created on Fri Nov  5 14:43:13 2021
 @author: shish
 """
 import torch
-from qmath import multi_kron, IsUnitary, IsHermitian
-from qtensornetwork import TensorDecompAfterTwoQbitGate, TensorDecompAfterThreeQbitGate
+from deepquantum.gates.qmath import  IsUnitary, IsHermitian, multi_kron
+from deepquantum.gates.qtensornetwork import TensorDecompAfterTwoQbitGate, TensorDecompAfterThreeQbitGate
 from typing import List
 
 class Operator(object):

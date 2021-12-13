@@ -14,6 +14,7 @@ from deepquantum.gates.qoperator import Hadamard,PauliX,PauliY,PauliZ,rx,ry,rz,u
 from deepquantum.gates.qmath import multi_kron
 
 from typing import List
+import multiprocessing as mp
 
 
 class Circuit(object):
@@ -71,6 +72,13 @@ class Circuit(object):
             if g.supportTN == False:
                 unsupportTN += 1
         print('number of gate&layers do not support TN:',unsupportTN)
+    
+    
+    def num_params(self)->int:
+        num_params = 0
+        for oper in self.gate:
+            num_params += oper.num_params
+        return num_params
     
     
     def draw(self):
@@ -178,6 +186,7 @@ class Circuit(object):
     
     
 if __name__ == '__main__':
+    
     cir = Circuit(3)
     
     cir.cphase(1.2, [1,2])
@@ -200,6 +209,6 @@ if __name__ == '__main__':
     print('\n',cir.U())
     lst1 = [torch.eye(2)]*3
     multi_kron(lst1)
-    input('')
+    input('qcircuit.py END')
         
         

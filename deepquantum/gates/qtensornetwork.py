@@ -39,6 +39,8 @@ def StateVec2MPS(psi:torch.Tensor, N:int, d:int=2)->List[torch.Tensor]:
         
         rst_lst.append(U.view(2,-1,U.shape[1]))
         c_tensor = S @ V_d
+        # if i == N-1:
+        #     print('final:',c_tensor)
     #t2 = time.time()
     #print('SV2MPS:',t2-t1)
     return rst_lst
