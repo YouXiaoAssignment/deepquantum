@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from typing import List
-import qoperator as op
+#from deepquantum.gates.qoperator import PauliZ
+import deepquantum as dq
 import time
 
 def multi_kron(lst:List[torch.Tensor]):
@@ -203,19 +204,20 @@ def partial_trace(rho, N, trace_lst):
 
 
 
-def _Zmeasure(n_qubit, ith=None):
+def _Zmeasure(n_qubit:int, ith=None):
     #生成测量力学量的列表
+    #print(n_qubit,type(n_qubit))
     M_lst = []
     if not ith:
         for i in range(n_qubit):
-            Mi = op.PauliZ(n_qubit, i).U_expand()
+            Mi = dq.PauliZ(n_qubit, i).U_expand()
             M_lst.append(Mi)
     elif type(ith) == int:
-        Mi = op.PauliZ(n_qubit, ith).U_expand()
+        Mi = dq.PauliZ(n_qubit, ith).U_expand()
         M_lst.append(Mi)
     else:
         for i in ith:
-            Mi = op.PauliZ(n_qubit, i).U_expand()
+            Mi = dq.PauliZ(n_qubit, i).U_expand()
             M_lst.append(Mi)
     return M_lst
 

@@ -11,6 +11,7 @@ from deepquantum.gates.qoperator import Hadamard,rx,ry,rz,rxx,ryy,rzz,cnot,cz,SW
 from deepquantum.gates.qtensornetwork import StateVec2MPS,MPS2StateVec,TensorDecompAfterTwoQbitGate
 import time
 from typing import List
+import multiprocessing as mp
 
 class SingleGateLayer(Operation):
     '''
@@ -27,6 +28,10 @@ class SingleGateLayer(Operation):
     
     def TN_operation(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
         lst1 = self._cal_single_gates()
+        
+        # a = list(map(self.single_gate_mp,[MPS[qbit] for qbit in self.wires],[lst1[qbit] for qbit in self.wires]))
+        # for i, qbit in enumerate(self.wires):
+        #     MPS[qbit] = a[i]
         for qbit in self.wires:
             temp = MPS[qbit]
             temp = temp.permute(1,2,0).unsqueeze(-1) #2421
@@ -34,6 +39,34 @@ class SingleGateLayer(Operation):
             MPS[qbit] = temp.permute(2,0,1)
 
         return MPS
+    
+    # def single_gate_mp(self,MPS_i,matrix):
+    #         MPS_i = MPS_i.permute(1,2,0).unsqueeze(-1) #2421
+    #         MPS_i = torch.squeeze(matrix @ MPS_i, dim=3) #242 在指定维度squeeze
+    #         MPS_i = MPS_i.permute(2,0,1)
+    #         return MPS_i
+    
+    # def TN_operation_mp(self,MPS:List[torch.Tensor])->List[torch.Tensor]:
+    #     lst1 = self._cal_single_gates()
+    #     num_cores = int(mp.cpu_count())
+    #     #print("本地计算机有: " + str(num_cores) + " 核心")
+    #     pool = mp.Pool(num_cores)
+    #     if len(self.wires) > num_cores:
+    #         rsts = []
+    #         for j in range( 1+int( len(self.wires)/num_cores )):
+    #             rst = [pool.apply_async( self.single_gate_mp,args=(MPS[self.wires[i]],lst1[self.wires[i]]) )\
+    #                    for i in range(min(num_cores,len(self.wires) - j*num_cores))]
+            
+    #             rsts += [p.get() for p in rst]
+    #     else:
+    #         rst = [pool.apply_async( self.single_gate_mp,args=(MPS[self.wires[i]],lst1[self.wires[i]]) )\
+    #                for i in range(len(self.wires))]
+    #         rst = [p.get() for p in rst]
+    #         rsts = rst 
+    #     for i,r in enumerate(rsts):
+    #          MPS[self.wires[i]] = r
+
+    #     return MPS
 
 class TwoQbitGateLayer(Operation):
     '''
