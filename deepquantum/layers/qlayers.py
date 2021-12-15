@@ -118,7 +118,8 @@ class XYZLayer(SingleGateLayer):
         return info
     
     def params_update(self,params_lst):
-        pass
+        self.params = params_lst
+        self.num_params = len(params_lst)
     
 
 
@@ -166,7 +167,8 @@ class YZYLayer(SingleGateLayer):
         return info
     
     def params_update(self,params_lst):
-        pass
+        self.params = params_lst
+        self.num_params = len(params_lst)
 
 
 
@@ -214,7 +216,8 @@ class XZXLayer(SingleGateLayer):
         return info
     
     def params_update(self,params_lst):
-        pass
+        self.params = params_lst
+        self.num_params = len(params_lst)
 
 
 
@@ -260,7 +263,8 @@ class XZLayer(SingleGateLayer):
         return info
     
     def params_update(self,params_lst):
-        pass
+        self.params = params_lst
+        self.num_params = len(params_lst)
 
 
 
@@ -308,7 +312,8 @@ class ZXLayer(SingleGateLayer):
         return info
     
     def params_update(self,params_lst):
-        pass
+        self.params = params_lst
+        self.num_params = len(params_lst)
 
 
 

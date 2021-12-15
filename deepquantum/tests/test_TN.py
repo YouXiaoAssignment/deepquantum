@@ -114,7 +114,7 @@ if 1:
     #10qubit是，1.5s对0.22s,优化矩阵后0.8s对0.2s,引入SWAP后0.8s对0.1s
     #14qubit:0.3s，15qubit:0.45s，16qubit:0.91s，18qubit:4.7s
 
-if 0:
+if 1:
     print('开始密度矩阵MPDO相关测试：')
     N = 9    #超过9个电脑就卡死了。量子线路的qubit总数
     wires_lst = list(range(N))
@@ -150,7 +150,7 @@ if 0:
     
 
     
-if 0:
+if 1:
     print('测试单比特门+cnot门+toffoli等门对TN的支持：')
     N = 8
     psi = nn.functional.normalize( torch.rand(1,2**N)+torch.rand(1,2**N)*1j,p=2,dim=1 )
@@ -228,9 +228,9 @@ if 0:
     print(psif0)
     print(psif1)
 
-if 0:
+if 1:
     print('测试单比特门+cnot门+toffoli等门TN运行耗时：')
-    N = 15
+    N = 12
     psi = nn.functional.normalize( torch.rand(1,2**N)+torch.rand(1,2**N)*1j,p=2,dim=1 )
     #psi1 = nn.functional.normalize( torch.rand(1,2**N)+torch.rand(1,2**N)*1j,p=2,dim=1 )
     # psi = torch.zeros(1,2**N)+0.0j

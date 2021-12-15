@@ -136,7 +136,10 @@ class DiagonalOperation(Operation):
 
 
 #==============================无参数单比特门==================================
-
+'''
+所有的gates、layers必须有self.num_params属性
+必须有params_update方法
+'''
 class Hadamard(SingleGateOperation):
     #没有可调参数
     #只作用在1个qubit上
@@ -408,6 +411,9 @@ class rz(SingleGateOperation):
             - 1j*torch.sin(self.params/2.0)*PauliZ().matrix + 0j
 
 
+
+
+
 class u1(SingleGateOperation):
     
     '''
@@ -442,8 +448,12 @@ class u1(SingleGateOperation):
         info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
         return info
     
-    def params_update(self,params):
-        pass
+    def params_update(self,theta):
+        theta = theta + torch.tensor(0.0)
+        self.params = theta
+        
+        exp_itheta = torch.cos(theta) + 1j * torch.sin(theta)
+        self.matrix = torch.tensor([[1,0],[0,exp_itheta]]) + 0j
 
 
 
@@ -491,9 +501,21 @@ class u3(SingleGateOperation):
         info = {'label':self.label, 'contral_lst':[], 'target_lst':[self.wires],'params':self.params}
         return info
     
-    def params_update(self,params):
-        pass
-
+    def params_update(self,theta_lst):
+        
+        if type(theta_lst) == type([1]):
+            theta_lst = torch.tensor(theta_lst)
+        self.params = theta_lst
+        
+        theta = theta_lst[0]
+        phi = theta_lst[1]
+        lambd = theta_lst[2]
+        self.matrix = \
+            rz(phi).matrix \
+            @ rx(-0.5*torch.pi).matrix \
+            @ rz(theta).matrix \
+            @ rx(0.5*torch.pi).matrix \
+            @ rz(lambd).matrix
 #==============================带参数两比特门==================================
 
 
@@ -923,8 +945,14 @@ class cphase(Operation):
         info = {'label':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':self.params}
         return info
     
-    def params_update(self,params):
-        pass
+    def params_update(self,theta):
+        theta = theta + torch.tensor(0.0)
+        self.params = theta
+        exp_itheta = torch.cos(theta) + 1j * torch.sin(theta)
+        self.matrix = torch.tensor([[1,0,0,0],\
+                                    [0,1,0,0],\
+                                    [0,0,1,0],\
+                                    [0,0,0,exp_itheta]]) + 0j
 
 
 
@@ -1000,8 +1028,21 @@ class cu3(Operation):
         info = {'label':self.label, 'contral_lst':[self.wires[0]], 'target_lst':[self.wires[1]],'params':self.params}
         return info
     
-    def params_update(self,params):
-        pass
+    def params_update(self,theta_lst):
+        if type(theta_lst) == type([1]):
+            theta_lst = torch.tensor(theta_lst)
+        self.params = theta_lst
+        
+        theta = theta_lst[0]
+        phi = theta_lst[1]
+        lambd = theta_lst[2]
+        self.u_matrix = \
+            rz(phi).matrix \
+            @ rx(-0.5*torch.pi).matrix \
+            @ rz(theta).matrix \
+            @ rx(0.5*torch.pi).matrix \
+            @ rz(lambd).matrix
+        self.matrix = Operation.two_qubit_control_gate( self.u_matrix, 2, 0, 1 )
 
 
 

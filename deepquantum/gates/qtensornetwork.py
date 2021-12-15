@@ -57,7 +57,7 @@ def MPS2StateVec(tensor_lst:List[torch.Tensor])->torch.Tensor:
             c_tensor = c_tensor.unsqueeze(1) @ temp
             shape = c_tensor.shape
             c_tensor = c_tensor.view(shape[0]*shape[1],shape[2],shape[3])
-    c_tensor = c_tensor.view(-1)
+    c_tensor = c_tensor.view(-1).view(1,-1)
     #t2 = time.time()
     #print('MPS:',t2-t1)
     return c_tensor #返回1行2^N列的张量，表示态矢的系数
