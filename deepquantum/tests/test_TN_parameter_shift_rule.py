@@ -8,7 +8,7 @@ import torch
 import deepquantum as dq
 from deepquantum.gates.qmath import multi_kron, measure, IsUnitary, IsNormalized
 import deepquantum.gates.qoperator as op
-from deepquantum.gates.qcircuit import Circuit
+from deepquantum.gates.qcircuit import Circuit,parameter_shift
 from deepquantum.embeddings.qembedding import PauliEncoding
 from deepquantum.layers.qlayers import YZYLayer, ZXLayer,ring_of_cnot, ring_of_cnot2, BasicEntangleLayer
 from deepquantum.gates.qtensornetwork import StateVec2MPS,MPS2StateVec,MPS_expec,Rho2MPS,MPS2Rho
@@ -57,6 +57,8 @@ def forward(params_lst):
     c1.YZYLayer(wires, params_lst[0:3*N])
     c1.ring_of_cnot(wires)
     c1.YZYLayer(wires, params_lst[3*N:6*N])
+    c1.ring_of_cnot(wires)
+    c1.YZYLayer(wires, params_lst[6*N:9*N])
 
 
     psi = torch.zeros(1,2**N) + 0j
@@ -88,49 +90,51 @@ def partial_M(params_lst):
 '''
 
 N = 4
-params_lst = torch.rand(6*N) * (2*torch.pi)
+params_lst = torch.rand(9*N) * (2*torch.pi)
 #print('p: ',params_lst[5])
 lr = 0.1
-for i in range(50):
+for i in range(20):
     grad = partial_M(params_lst)
     # print('g: ',grad,'size: ',grad.shape)
     # print('p: ',params_lst[5])
     params_lst = params_lst - lr*grad
     #print('p: ',params_lst[5])
     print('i：',i,' 期望值：',forward(params_lst))
+
+#==============================================================================
+
+N = 4
+wires = list(range(N))
+params_lst = torch.rand(9*N) * (2*torch.pi)
+
+I = torch.eye(2) + 0j
+lstM = [I]*N
+lstM[0] = dq.PauliZ().matrix
+#lstM[1] = dq.PauliZ().matrix
+M = multi_kron(lstM)
+
+lr = 0.1
+for i in range(50):
+    c1 = Circuit(N)
+    c1.YZYLayer(wires, params_lst[0:3*N])
+    c1.ring_of_cnot(wires)
+    c1.YZYLayer(wires, params_lst[3*N:6*N])
+    c1.ring_of_cnot(wires)
+    c1.YZYLayer(wires, params_lst[6*N:9*N])
+    # c1.ring_of_cnot(wires)
+    # c1.YZYLayer(wires, params_lst[9*N:12*N])
+    # c1.ring_of_cnot(wires)
+    # c1.YZYLayer(wires, params_lst[12*N:15*N])
+    print(i,'  ',c1.cir_expectation(c1.state_init().view(1,-1), M))
+    
+    
+    ps = parameter_shift(c1, c1.state_init().view(1,-1), M)
+    grad = ps.cal_params_grad()
+    params_lst = params_lst - lr*grad
+    
+
     
 input('END')
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

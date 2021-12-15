@@ -12,12 +12,13 @@ import matplotlib.pyplot as plt
 import random
 import math
 import time
+import copy
 #import onnx
 
 import deepquantum as dq
 from deepquantum.gates.qmath import multi_kron, measure, IsUnitary, IsNormalized
 import deepquantum.gates.qoperator as op
-from deepquantum.gates.qcircuit import Circuit
+from deepquantum.gates.qcircuit import Circuit,parameter_shift
 from deepquantum.embeddings.qembedding import PauliEncoding
 from deepquantum.layers.qlayers import YZYLayer, ZXLayer,ring_of_cnot, ring_of_cnot2, BasicEntangleLayer
 from deepquantum.gates.qtensornetwork import StateVec2MPS,MPS2StateVec,\
@@ -48,6 +49,51 @@ net1.circuit.weight.grad \
 optimizer.step()
 '''
 
+'''
+NOTE:
+1)batch为1就可以收敛，大于1就不能收敛，why？
+2)尽量避免使用list列表操作，line 159~line 163的列表操作会导致无法求梯度，使得grad=None
+3)自定义的backward必需带有grad_output参数，这表示求导链式法则中，loss相对于该forward输出的导数
+backward的返回值必须乘上grad_output，因为backward主体计算的是forward输出对于输入的导数，根据链
+式法则，乘上grad_output之后，才表示loss相对输入的导数。
+'''
+class HybridFunction(torch.autograd.Function):
+    '''
+    参考：
+    https://blog.csdn.net/winycg/article/details/104410525
+    https://zhuanlan.zhihu.com/p/27783097
+    https://qiskit.org/textbook/ch-machine-learning/machine-learning-qiskit-pytorch.html
+    '''
+    @staticmethod
+    def forward(ctx, params_lst, N,input_state, M):
+        #print('myforward')
+        c1 = Circuit(N)
+        wires_lst = list(range(N))
+        c1.YZYLayer(wires_lst, params_lst[0*N:3*N])
+        c1.ring_of_cnot(wires_lst)
+        c1.YZYLayer(wires_lst, params_lst[3*N:6*N])
+        # c1.ring_of_cnot(wires_lst)
+        # c1.YZYLayer(wires_lst, params_lst[6*N:9*N])
+        # c1.ring_of_cnot(wires_lst)
+        # c1.YZYLayer(wires_lst, params_lst[9*N:12*N])
+        #print('params_lst: ',params_lst.requires_grad)
+        ctx.circuit = c1
+        ctx.save_for_backward(input_state, M)
+        
+        result = c1.cir_expectation(input_state, M)
+        #print('result: ',result.requires_grad)
+        
+        return result
+    
+    @staticmethod
+    def backward(ctx,grad_output):
+        #print('okok')
+        #print(grad_output)
+        input_state, M = ctx.saved_tensors
+        ps = parameter_shift(ctx.circuit, input_state, M)
+        grad = ps.cal_params_grad()
+        #print('mybackward',grad)
+        return grad * grad_output,None,None,None
 
 
 
@@ -58,7 +104,7 @@ class qcir(torch.jit.ScriptModule):
         #属性：量子线路qubit数目，随机初始化的线路参数，测量力学量列表
         self.nqubits = nqubits
         self.weight = \
-            nn.Parameter( nn.init.uniform_(torch.empty(12*self.nqubits), a=0.0, b=2*torch.pi) )
+            nn.Parameter( nn.init.uniform_(torch.empty(6*self.nqubits), a=0.0, b=2*torch.pi) )
         
         self.M_lst = self.Zmeasure()
 
@@ -73,10 +119,11 @@ class qcir(torch.jit.ScriptModule):
         return M_lst
             
     
-    def build_circuit(self,input_lst_batch):
+    def forward(self,input_lst_batch):
         '''
         构建变分量子线路的演化矩阵
         '''
+        
         wires_lst = [i for i in range(self.nqubits)]
         #创建线路
         c1 = Circuit(self.nqubits) 
@@ -88,44 +135,93 @@ class qcir(torch.jit.ScriptModule):
         #encoding编码部分
         MPS_batch = []
         for i in range(len(input_lst_batch)):
+            # print(MPS_batch)
+            # print(i)
             PE = PauliEncoding(self.nqubits, input_lst_batch[i], wires_lst)
-            MPS_batch.append( PE.TN_operation(MPS) )
-        #variation变分部分
-        c1.YZYLayer(wires_lst, self.weight[0*self.nqubits:3*self.nqubits])
-        c1.ring_of_cnot(wires_lst)
-        c1.YZYLayer(wires_lst, self.weight[3*self.nqubits:6*self.nqubits])
-        c1.ring_of_cnot(wires_lst)
-        c1.YZYLayer(wires_lst, self.weight[6*self.nqubits:9*self.nqubits])
-        c1.ring_of_cnot(wires_lst)
-        c1.YZYLayer( wires_lst, self.weight[9*self.nqubits:12*self.nqubits] ) 
-        
-        psif_batch = []
+            #print('PE: ',id(PE))
+            MPS_f = PE.TN_operation(MPS)
+            '''
+            子诶调用父类的method：TN_operation返回值赋值后MPS_f地址一直一样
+            导致直接append(MPS_f)会导致MPS_batch内部所有元素都链接到一个地址上
+            从而全部被覆盖，所以必须用copy.copy()
+            '''
+            #print("MPS_f",id(MPS_f))
+            # print(MPS_f)
+            MPS_batch.append( copy.copy(MPS_f) )
+            #MPS_batch.append( MPS_f )
+            #MPS_batch[i] = copy.copy(MPS_f)
+            #print("MPS_batch",id(MPS_batch[i]))
+            #print(MPS_batch[i])
+        # print(0,MPS_batch[0])
+        # print(1,MPS_batch[1])
+        #print('================================================================')
+        # ======================================================================
         for i in range(len(MPS_batch)):
             MPS_batch[i] = c1.TN_evolution(MPS_batch[i])
+            psi_i = MPS2StateVec(MPS_batch[i])
+            
+            # rst_lst = []
+            # for Mi in self.M_lst:
+            #     rst_lst.append(\
+            #             HybridFunction.apply(self.weight, self.nqubits, psi_i, Mi ) )
+            # r = torch.tensor(rst_lst,requires_grad=True)
+            
+            # for j, Mi in enumerate(self.M_lst):
+            #     expec = HybridFunction.apply(self.weight, self.nqubits, psi_i, Mi ).view(1,1)
+            #     if j == 0:
+            #         r = expec
+            #     else:
+            #         r = torch.cat((r,expec),dim=1)
+            
+            
+            r = HybridFunction.apply(self.weight, self.nqubits, psi_i, self.M_lst[0] )
+            
             if i == 0:
-                psif_batch = MPS2StateVec(MPS_batch[i]).view(1,-1)
+                rst = r.view(1,-1)
             else:
-                psif_batch = torch.cat((psif_batch,MPS2StateVec(MPS_batch[i]).view(1,-1)),dim=0)
-        #print(psif_batch.shape)
-        return psif_batch
-    
-    
-    def forward(self,input_lst_batch):
-        #计算编码后的态和变分线路的演化矩阵
-        psif = self.build_circuit(input_lst_batch)
-        
-        
-        #模拟测量得到各个测量力学量的期望值
-        measure_rst = []
-        for Mi in self.M_lst: 
-            measure_rst.append((psif.conj().unsqueeze(-2) @ Mi @ psif.unsqueeze(-1)).squeeze(dim=2).real)
-        
-        #以4个qubit的线路为例，把3个[batch,1]的矩阵拼接为[batch,4]
-        rst = torch.cat( tuple(measure_rst),dim=1 ) 
-        
-        #把值域做拉伸，从[-1,1]变为[-4,4]
-        rst = ( rst + 0 ) * 4
+                rst = torch.cat( (rst, r.view(1,-1)), dim=0 )
+        #print(rst)
+        # print('rst: ',rst.requires_grad)
+        # print('self.weight grad: ',self.weight.requires_grad)
         return rst
+        #======================================================================
+        
+        #variation变分部分
+        # c1.YZYLayer(wires_lst, self.weight[0*self.nqubits:3*self.nqubits])
+        # c1.ring_of_cnot(wires_lst)
+        # c1.YZYLayer(wires_lst, self.weight[3*self.nqubits:6*self.nqubits])
+        # c1.ring_of_cnot(wires_lst)
+        # c1.YZYLayer(wires_lst, self.weight[6*self.nqubits:9*self.nqubits])
+        # c1.ring_of_cnot(wires_lst)
+        # c1.YZYLayer( wires_lst, self.weight[9*self.nqubits:12*self.nqubits] ) 
+        
+        # psif_batch = []
+        # for i in range(len(MPS_batch)):
+        #     MPS_batch[i] = c1.TN_evolution(MPS_batch[i])
+        #     if i == 0:
+        #         psif_batch = MPS2StateVec(MPS_batch[i]).view(1,-1)
+        #     else:
+        #         psif_batch = torch.cat((psif_batch,MPS2StateVec(MPS_batch[i]).view(1,-1)),dim=0)
+        # #print(psif_batch.shape)
+        # return psif_batch
+    
+    
+    # def forward(self,input_lst_batch):
+    #     #计算编码后的态和变分线路的演化矩阵
+    #     psif = self.build_circuit(input_lst_batch)
+        
+        
+    #     #模拟测量得到各个测量力学量的期望值
+    #     measure_rst = []
+    #     for Mi in self.M_lst: 
+    #         measure_rst.append((psif.conj().unsqueeze(-2) @ Mi @ psif.unsqueeze(-1)).squeeze(dim=2).real)
+        
+    #     #以4个qubit的线路为例，把3个[batch,1]的矩阵拼接为[batch,4]
+    #     rst = torch.cat( tuple(measure_rst),dim=1 ) 
+        
+    #     #把值域做拉伸，从[-1,1]变为[-4,4]
+    #     rst = ( rst + 0 ) * 4
+    #     return rst
         
         
         
@@ -139,8 +235,8 @@ class qnet(torch.jit.ScriptModule):
         
         self.nqubits = nqubits
         self.circuit = qcir(self.nqubits)
-        self.FC1 = nn.Linear(len(self.circuit.M_lst),1)
-        # self.FC2 = nn.Linear(8,8)
+        self.FC1 = nn.Linear(len(self.circuit.M_lst),8)
+        self.FC2 = nn.Linear(8,1)
         # self.FC3 = nn.Linear(8,1)
       
    
@@ -150,9 +246,14 @@ class qnet(torch.jit.ScriptModule):
         #输入数据的非线性预处理
         #pre_batch = torch.sqrt( 0.5*(1 + torch.sigmoid(x_batch)) )
         pre_batch = x_batch
-        cir_out = self.circuit ( pre_batch )
+        #print('pre_batch: ',pre_batch.requires_grad)
+        cir_out = 4*self.circuit ( pre_batch )
+        #print(cir_out)
+        #print('cir_out: ',cir_out.requires_grad)
         return cir_out[:,0]
         # out = nn.functional.leaky_relu(self.FC1(cir_out))
+        # out = torch.sigmoid(self.FC1(cir_out))
+        # print('out: ',out.requires_grad)
         # out = nn.functional.leaky_relu(self.FC2(out))
         # out = nn.functional.leaky_relu(self.FC3(out))
         # return out
@@ -162,7 +263,7 @@ class qnet(torch.jit.ScriptModule):
 
 
 def foo(x1):
-    y = 2*math.sin(x1)
+    y = 2*math.sin(2*x1+1.9)
     return y
 
 
@@ -170,7 +271,7 @@ def foo(x1):
 
 if __name__ == "__main__":
     
-    N = 4
+    N = 2
     num_examples = 256
     num_inputs = 1
     num_outputs = 1
@@ -207,12 +308,12 @@ if __name__ == "__main__":
     
     
     #定义优化器，也就是选择优化器，选择Adam梯度下降，还是随机梯度下降，或者其他什么
-    #optimizer = optim.SGD(net1.parameters(), lr=0.01) #lr为学习率
-    optimizer = optim.Adam(net1.parameters(), lr=0.001) #lr为学习率
-    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=[5,10,15], gamma=0.8)
+    #optimizer = optim.SGD(net1.parameters(), lr=0.001) #lr为学习率
+    optimizer = optim.Adam(net1.parameters(), lr=0.01) #lr为学习率
+    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=[50,100], gamma=0.1)
     
-    num_epochs = 50;
-    batch_size = 128;
+    num_epochs = 5;
+    batch_size = 1;
     
     #记录loss随着epoch的变化，用于后续绘图
     epoch_lst = [i+1 for i in range(num_epochs)]
@@ -222,28 +323,32 @@ if __name__ == "__main__":
         t1 = time.time()
         for x,y in data_iter(batch_size,features,labels):
             
-            x.requires_grad_(True)
             output = net1(x);
             #squeeze是为了把y维度从1x3变成3
-            l = loss(output.squeeze(),y.squeeze());
+            
+            l = loss(output.squeeze(),y.squeeze())
+            
+            # print(l)
+            # print(l.requires_grad)
             #梯度清0
             optimizer.zero_grad() 
             l.backward()
+            #print('output.grad: ',output.requires_grad)
             '''
             parameters：希望实施梯度裁剪的可迭代网络参数
             max_norm：该组网络参数梯度的范数上限
             norm_type：范数类型(一般默认为L2 范数, 即范数类型=2) 
             torch.nn.utils.clipgrad_norm() 的使用应该在loss.backward() 之后，optimizer.step()之前.
             '''
-            nn.utils.clip_grad_norm_(net1.circuit.weight,max_norm=1,norm_type=2)
+            #nn.utils.clip_grad_norm_(net1.circuit.weight,max_norm=1,norm_type=2)
             #print('loss: ',l.item())
             #print("weights_grad2:",net1.circuit.weight.grad,'  weight is leaf?:',net1.circuit.weight.is_leaf)
-            grad = net1.circuit.weight.grad
-            net1.circuit.weight.grad \
-                = torch.where(torch.isnan(grad),torch.full_like(grad, 0),grad)
+            # grad = net1.circuit.weight.grad
+            # net1.circuit.weight.grad \
+            #     = torch.where(torch.isnan(grad),torch.full_like(grad, 0),grad)
             optimizer.step()
             
-        #lr_scheduler.step() #进行学习率的更新
+        lr_scheduler.step() #进行学习率的更新
         loss_lst.append(l.item())
         t2 = time.time()
         print("epoch:%d, loss:%f" % (epoch,l.item()),\
@@ -271,9 +376,7 @@ if __name__ == "__main__":
     plt.plot(epoch_lst,loss_lst,'r^--',linewidth=1, markersize=1.5)
     plt.show()
     
-    input("")
     
-
     
-input('END')
+input('test_TN_train.py END')
 
